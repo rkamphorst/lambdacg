@@ -1,0 +1,27 @@
+{
+  "name": "lambdacg-resolver",
+  "description": "",
+  "version": "1.0.0",
+  "types": "dist/index",
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js"
+  },
+  "workspaces": [
+    "../../lambdacg-contract/src"
+  ],
+  "files": [ "dist/**/*.js", "dist/**/*.d.ts", "dist/**/*.json" ],
+  "private": true,
+  "scripts": {
+    "build": "npm install && tsc --build",
+    "test": "cd ../test && npm run test"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.84",
+    "@types/lodash": "^4.14.176",
+    "@types/node": "^16.11.6"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}

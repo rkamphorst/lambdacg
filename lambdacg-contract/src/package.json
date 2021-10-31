@@ -1,0 +1,22 @@
+{
+  "name": "lambdacg-contract",
+  "description": "",
+  "version": "1.0.0",
+  "main": "dist/index",
+  "types": "dist/index",
+  "files": [ "dist/**/*.js", "dist/**/*.d.ts" ],
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rkamphorst/lambdagcg.git"
+  },
+  "keywords": [],
+  "author": "Reinder Kamphorst",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rkamphorst/lambdagcg/issues"
+  },
+  "homepage": "https://github.com/rkamphorst/lambdagcg"
+}

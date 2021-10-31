@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "aws-sdk": "^2.1013.0",
-    "global-npm": "^0.4.1"
-  }
-}
