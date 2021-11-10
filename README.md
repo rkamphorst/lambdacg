@@ -17,11 +17,11 @@ Before anything else:
 
     npm install
 
-To build all the code:
+To build all the code (still at the root):
 
     npm build
 
-To run all the unit tests:
+To run all the unit tests (again, at the root of the repo):
 
     npm test
 
