@@ -1,14 +1,9 @@
 import _ from 'lodash';
-
+import { ComposeFunction } from './composer-contract';
 import { HandlerResponse } from 'lambdacg-contract';
 
 interface DictionaryObject {
     [key: string]: any
-}
-
-function compose(responseTemplate: HandlerResponse, responses: HandlerResponse[]): HandlerResponse
-{
-    return responses.reduce(mergeItems, responseTemplate); 
 }
 
 function mergeItems (item1: any, item2: any) {
@@ -66,6 +61,11 @@ function mergeObjects (object1: DictionaryObject, object2: DictionaryObject): Di
         }
     }
     return result;
+}
+
+const compose : ComposeFunction = (responseTemplate, responses) =>
+{
+    return responses.reduce(mergeItems, responseTemplate); 
 }
 
 export { compose };
