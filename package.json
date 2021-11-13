@@ -1,4 +1,5 @@
 {
+  "name": "lambdacg",
   "scripts": {
     "prepare": "npm-run-all prepare:*",
     "prepare:contract": "cd lambdacg-contract/src && npm ci",

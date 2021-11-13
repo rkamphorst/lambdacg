@@ -1,4 +1,5 @@
 {
+  "name": "lambdacg-updater",
   "devDependencies": {
     "aws-sdk": "^2.1013.0"
   }
