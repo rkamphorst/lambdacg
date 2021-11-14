@@ -20,10 +20,12 @@
                 "--colors",
                 "${workspaceFolder}/lambdacg-resolver/test/**/*.test.ts"
             ],
+            "runtimeArgs": ["--preserve-symlinks"],
             "internalConsoleOptions": "openOnSessionStart",
             "skipFiles": [
             "<node_internals>/**"
-            ]
+            ],
+            "smartStep": true
         }
     ]
 }

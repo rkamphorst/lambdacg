@@ -1,10 +1,6 @@
-import { HandlerFactory, HandlerParameters, HandlerResponse } from 'lambdacg-contract';
+import { HandlerFactory, HandlerParameters } from 'lambdacg-contract';
+import { ExecuteAsyncFunction, Executor} from './executor-contract';
 
-interface Executor {
-    execution: string;
-    startExecute(handlerFactories : HandlerFactory[], requestName: string, requestParams: HandlerParameters): (HandlerResponse | Promise<HandlerResponse>)[]
-    executeAsync(handlerFactories : HandlerFactory[], requestName: string, requestParams: HandlerParameters): Promise<HandlerResponse[]>;
-}
 
 class OptionalExecutor implements Executor {
     
@@ -57,7 +53,7 @@ const executorMap = executorClasses.reduce(
         return map;
     }, {});
 
-const executeAsync = function(execution: string, handlerFactories : HandlerFactory[], requestName: string, requestParams: HandlerParameters) : Promise<HandlerResponse[]>
+const executeAsync:ExecuteAsyncFunction = function(execution, handlerFactories, requestName, requestParams)
 {
     const executor = executorMap[execution];
     if ('object' !== typeof executor) {

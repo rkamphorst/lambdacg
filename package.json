@@ -1,8 +1,9 @@
 {
+  "name": "lambdacg",
   "scripts": {
     "prepare": "npm-run-all prepare:*",
-    "prepare:contract": "cd lambdacg-contract/src && npm install",
-    "prepare:resolver": "cd lambdacg-resolver/src && npm install",
+    "prepare:contract": "cd lambdacg-contract/src && npm ci",
+    "prepare:resolver": "cd lambdacg-resolver/src && npm ci",
 
     "build": "npm run build:contract && npm run build:resolver",
     "build:contract": "cd lambdacg-contract/src && npm run build",
