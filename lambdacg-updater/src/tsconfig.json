@@ -3,20 +3,22 @@
         "module": "commonjs",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
+        "composite": true,
+        "declaration": true,
+        "declarationMap": true,      
         "target": "es6",
         "noImplicitAny": true,
         "moduleResolution": "node",
         "sourceMap": true,
-        "outDir": "../../dist",
+        "outDir": "dist",
         "baseUrl": ".",
         "paths": {
             "*": [
-                "node_modules/*",
-                "types/*"
+                "node_modules/*"
             ]
         }
     },
     "include": [
-        "src/**/*"
+        "**/*"
     ]
 }
