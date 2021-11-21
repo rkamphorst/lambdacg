@@ -17,39 +17,38 @@ describe("Executor", () => {
         
     });
     
+    describe("execution: 'optional'", () => {
+        const execution = "optional";
     
+        executionShouldCallOneHandler(execution);
+        executionShouldCallMultipleHandlers(execution);
+        executionShouldReturnEmptArrayIfZeroHandlers(execution);
+        executionShouldThrowIfHandlerThrows(execution);
+        executionShouldThrowIfHandlerReturnsRejectedPromise(execution);
+    });
+
+    describe("execution: 'single'", () => {
+        const execution = "single";
+    
+        executionShouldCallOneHandler(execution);
+        executionShouldThrowIfMultipleHandlers(execution);
+        executionShouldThrowIfZeroHandlers(execution);
+        executionShouldThrowIfHandlerThrows(execution);
+        executionShouldThrowIfHandlerReturnsRejectedPromise(execution);
+    });
+    
+    describe("execution: 'all'", () => {
+        const execution = "all";
+    
+        executionShouldCallOneHandler(execution);
+        executionShouldCallMultipleHandlers(execution);
+        executionShouldThrowIfZeroHandlers(execution);
+        executionShouldThrowIfHandlerThrows(execution);
+        executionShouldThrowIfHandlerReturnsRejectedPromise(execution);
+    
+    });
 });
 
-describe("Executor (execution: 'optional')", () => {
-    const execution = "optional";
-
-    executionShouldCallOneHandler(execution);
-    executionShouldCallMultipleHandlers(execution);
-    executionShouldReturnEmptArrayIfZeroHandlers(execution);
-    executionShouldThrowIfHandlerThrows(execution);
-    executionShouldThrowIfHandlerReturnsRejectedPromise(execution);
-});
-
-describe("Executor (execution: 'single')", () => {
-    const execution = "single";
-
-    executionShouldCallOneHandler(execution);
-    executionShouldThrowIfMultipleHandlers(execution);
-    executionShouldThrowIfZeroHandlers(execution);
-    executionShouldThrowIfHandlerThrows(execution);
-    executionShouldThrowIfHandlerReturnsRejectedPromise(execution);
-});
-
-describe("Executor (execution: 'all')", () => {
-    const execution = "all";
-
-    executionShouldCallOneHandler(execution);
-    executionShouldCallMultipleHandlers(execution);
-    executionShouldThrowIfZeroHandlers(execution);
-    executionShouldThrowIfHandlerThrows(execution);
-    executionShouldThrowIfHandlerReturnsRejectedPromise(execution);
-
-});
 
 
 function executionShouldCallOneHandler(execution: string) : void 

@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "main": "dist/index",
   "types": "dist/index",
-  "files": [ "dist/**/*.js", "dist/**/*.d.ts" ],
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
   "scripts": {
     "build": "tsc --build"
   },
@@ -18,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/rkamphorst/lambdagcg/issues"
   },
-  "homepage": "https://github.com/rkamphorst/lambdagcg"
+  "homepage": "https://github.com/rkamphorst/lambdagcg",
+  "devDependencies": {
+    "typescript": "^4.5.2"
+  }
 }

@@ -17,14 +17,21 @@
   ],
   "private": true,
   "scripts": {
-    "build": "npm install && tsc --build",
+    "build": "tsc --build",
     "test": "cd ../test && npm run test"
   },
   "devDependencies": {
+    "@types/gunzip-maybe": "^1.4.0",
     "@types/node": "^16.11.7",
-    "@types/npm-package-arg": "^6.1.1",
+    "@types/tar-stream": "^2.2.2",
+    "@types/tmp": "^0.2.2",
     "aws-sdk": "^2.1013.0",
     "ts-node": "^10.4.0",
     "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "gunzip-maybe": "^1.4.2",
+    "tar-stream": "^2.2.0",
+    "tmp": "^0.2.1"
   }
 }

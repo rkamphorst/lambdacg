@@ -17,7 +17,7 @@
   ],
   "private": true,
   "scripts": {
-    "build": "npm install && tsc --build",
+    "build": "tsc --build",
     "test": "cd ../test && npm run test"
   },
   "devDependencies": {
