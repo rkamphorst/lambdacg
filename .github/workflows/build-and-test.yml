@@ -21,6 +21,11 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ secrets.AWS_TESTING_ROLE }}
+        aws-region: eu-west-1
     - run: npm ci
     - run: npm run build
     - run: npm test
