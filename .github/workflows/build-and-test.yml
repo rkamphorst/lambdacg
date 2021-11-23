@@ -5,7 +5,7 @@ on:
   - pull_request
 
 jobs:
-  build:
+  buildAndTest:
 
     runs-on: ubuntu-latest
     permissions:
