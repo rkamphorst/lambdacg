@@ -7,9 +7,7 @@
     ".": "./dist/index.js",
     "./*": "./dist/*.js"
   },
-  "workspaces": [
-    "../../lambdacg-contract/src"
-  ],
+  "workspaces": [],
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
