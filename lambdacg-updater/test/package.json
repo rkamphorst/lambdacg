@@ -10,6 +10,7 @@
     "test-watch": "mocha --r ts-node/register --timeout 30000 --extensions ts,tsx --watch --watch-files '../src' --watch-files . '**/*.test.ts'"
   },
   "devDependencies": {
+    "@tsconfig/recommended": "^1.0.1",
     "@types/aws-sdk": "^2.7.0",
     "@types/chai": "^4.2.22",
     "@types/mocha": "^9.0.0",
