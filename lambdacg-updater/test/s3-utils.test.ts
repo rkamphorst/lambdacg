@@ -20,8 +20,8 @@ describe("S3Utils", () => {
         ...nonPackageFileNamesWithPrefix
      ];
     
-    const if_awscreds = function (test: () => void|Promise<void>) {
-        return function() {
+    const if_awscreds = function (test: (this:any) => void|Promise<void>) {
+        return function(this:any) {
             if (!hasAwsCredentials) {
                 this.skip();
             } 
