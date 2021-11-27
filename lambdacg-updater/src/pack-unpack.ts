@@ -35,7 +35,7 @@ const unpackNpmPackageContentsInTarball = async (inputStream:Readable):Promise<s
                 stream.on('end', next);
             });
 
-            extractTransform.on('close', () => resolve(tmpdir));
+            extractTransform.on('finish', () => resolve(tmpdir));
             extractTransform.on('error', (err) => reject(err));
         });
     } catch (error) {
