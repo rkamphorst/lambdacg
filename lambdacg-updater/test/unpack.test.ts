@@ -1,11 +1,11 @@
-import {unpackNpmPackageContentsInTarball} from "lambdacg-updater/pack-unpack";
+import {unpackNpmPackageContentsInTarball} from "lambdacg-updater/unpack";
 import {createReadStream} from "node:fs";
 import path from "node:path";
 import fs from "node:fs/promises";
 import {expect} from "chai";
 
 
-describe("PackUnpack", () => {
+describe("Unpack", () => {
 
     describe("unpackNpmPackageContentsInTarball", () => {
         it("Should unpack package to a tmp dir", async () => {
@@ -36,9 +36,9 @@ describe("PackUnpack", () => {
                 const libjsExists = (await fs.stat(libjs)).isFile();
                 expect(libjsExists).to.be.true;
 
-            } catch (error) {
+            } finally {
                 await fs.rm(unpackDir, {recursive:true, force:true})
-                throw error;
+                console.log(`Removed directory with contents: ${unpackDir}`);
             }
         });
 

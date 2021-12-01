@@ -7,10 +7,8 @@ import {Readable} from "node:stream";
 import tar from "tar-stream";
 import gunzip from "gunzip-maybe";
 
-
-
 const unpackNpmPackageContentsInTarball = async (inputStream:Readable):Promise<string> => {
-    const tmpdir: string = await mkdtemp(path.join(os.tmpdir(), 'lambdacg-resolver-'));
+    const tmpdir: string = await mkdtemp(path.join(os.tmpdir(), 'lambdacg-resolver-unpack-'));
 
     try {
         return await new Promise((resolve, reject) => {
@@ -44,9 +42,7 @@ const unpackNpmPackageContentsInTarball = async (inputStream:Readable):Promise<s
     }
 };
 
-
-
 export {
     unpackNpmPackageContentsInTarball
-}
+};
 

@@ -1,33 +1,16 @@
 import {Readable} from "node:stream";
-import fs from "node:fs";
+import fs from "node:fs/promises";
+import {createReadStream} from "node:fs";
 import path from "node:path";
-import { promisify  } from "node:util";
-import { ConfigurationServicePlaceholders } from "aws-sdk/lib/config_service_placeholders";
+import fse from "./fs-exists";
 
-const fsStatAsync = promisify(fs.stat);
-
-const fileExistsAsync = async (filePath:string):Promise<boolean> => {
-    try {
-        return (await fsStatAsync(filePath)).isFile();
-    } catch (e) {
-        return false;
-    }
-}
-
-const directoryExistsAsync = async (dirPath:string):Promise<boolean> => {
-    try {
-        return (await fsStatAsync(dirPath)).isDirectory();
-    } catch (e) {
-        return false;
-    }
-}
 
 const findPackageRootAsync = async (startPath:string):Promise<string> => {
-    if (!directoryExistsAsync(startPath)) {
+    if (!fse.directoryExistsAsync(startPath)) {
         throw new Error(`Path is not a directory: ${startPath}`);
     }
 
-    if (await fileExistsAsync(path.join(startPath, 'package.json'))) {
+    if (await fse.fileExistsAsync(path.join(startPath, 'package.json'))) {
         return startPath;
     }
     return await findPackageRootAsync(path.dirname(startPath));
@@ -40,11 +23,11 @@ const getAssetStreamAsync = async (assetName:string):Promise<Readable> => {
     const assetPath = path.join(packageRoot, 'assets', assetName);
     console.log("asset path is " + assetPath);
 
-    if (!await fileExistsAsync(assetPath)) {
+    if (!await fse.fileExistsAsync(assetPath)) {
         throw new Error(`Asset not found: ${assetName}`);
     }
 
-    return fs.createReadStream(assetPath);
+    return createReadStream(assetPath);
 }
 
 export {getAssetStreamAsync}
