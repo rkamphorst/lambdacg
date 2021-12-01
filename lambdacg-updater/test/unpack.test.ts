@@ -1,8 +1,8 @@
-import {unpackNpmPackageContentsInTarball} from "lambdacg-updater/unpack";
-import {createReadStream} from "node:fs";
+import { unpackNpmPackageContentsInTarball } from "lambdacg-updater/unpack";
+import { createReadStream } from "node:fs";
 import path from "node:path";
 import fs from "node:fs/promises";
-import {expect} from "chai";
+import { expect } from "chai";
 
 
 describe("Unpack", () => {
@@ -37,7 +37,7 @@ describe("Unpack", () => {
                 expect(libjsExists).to.be.true;
 
             } finally {
-                await fs.rm(unpackDir, {recursive:true, force:true})
+                await fs.rm(unpackDir, { recursive: true, force: true })
                 console.log(`Removed directory with contents: ${unpackDir}`);
             }
         });

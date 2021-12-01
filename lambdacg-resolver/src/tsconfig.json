@@ -5,7 +5,7 @@
         "allowSyntheticDefaultImports": true,
         "composite": true,
         "declaration": true,
-        "declarationMap": true,      
+        "declarationMap": true,
         "target": "es6",
         "noImplicitAny": true,
         "moduleResolution": "node",
@@ -22,6 +22,8 @@
         "**/*"
     ],
     "references": [
-        {"path": "../../lambdacg-contract/src"}
+        {
+            "path": "../../lambdacg-contract/src"
+        }
     ]
 }

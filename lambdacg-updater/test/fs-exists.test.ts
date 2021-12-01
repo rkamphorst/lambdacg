@@ -1,8 +1,8 @@
 import fs from "node:fs/promises"
 import fse from "lambdacg-updater/fs-exists"
-import {tmpName} from 'tmp';
-import {expect} from 'chai';
-import {promisify} from 'node:util'
+import { tmpName } from 'tmp';
+import { expect } from 'chai';
+import { promisify } from 'node:util'
 
 const tmpNameAsync = promisify(tmpName);
 
@@ -19,11 +19,11 @@ describe("FsExists", () => {
                 expect(result).to.be.true;
 
             } finally {
-                await fs.rm(filename, {force:true});
+                await fs.rm(filename, { force: true });
             }
-            
+
         });
-        it ("Should return false if it exists but is not a file", async () => {
+        it("Should return false if it exists but is not a file", async () => {
 
             const dirname = await fs.mkdtemp("lambdacg-updater-test-");
 
@@ -34,11 +34,11 @@ describe("FsExists", () => {
 
             } finally {
 
-                await fs.rm(dirname, {recursive: true, force:true});
+                await fs.rm(dirname, { recursive: true, force: true });
             }
         });
 
-        it ("Should return false if it does not exist", async () => {
+        it("Should return false if it does not exist", async () => {
             const filename = await tmpNameAsync();
             const result = await fse.fileExistsAsync(filename);
             expect(result).to.be.false;

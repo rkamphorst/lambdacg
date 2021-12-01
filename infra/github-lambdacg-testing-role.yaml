@@ -8,7 +8,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName: GithubLambdaCgTestingRole
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
       AssumeRolePolicyDocument:
@@ -25,7 +25,7 @@ Resources:
     Type: AWS::IAM::OIDCProvider
     Properties:
       Url: https://token.actions.githubusercontent.com
-      ClientIdList: 
+      ClientIdList:
         - !Sub https://github.com/${FullRepoName}
         - sts.amazonaws.com
         - sigstore
@@ -34,4 +34,4 @@ Resources:
 
 Outputs:
   Role:
-    Value: !GetAtt Role.Arn  
+    Value: !GetAtt Role.Arn

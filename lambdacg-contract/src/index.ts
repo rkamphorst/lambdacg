@@ -1,11 +1,11 @@
 
 interface HandlerFactory {
 
-    name : string;
+    name: string;
 
-    canHandle(requestName: string) : boolean;
+    canHandle(requestName: string): boolean;
 
-    createHandler(requestName : string): (requestParameters: object) => object;
+    createHandler(requestName: string): (requestParameters: object) => object;
 }
 
 

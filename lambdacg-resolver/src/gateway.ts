@@ -26,20 +26,20 @@ class Gateway {
     #handlerFactories: HandlerFactory[]
     #executeAsync: ExecuteAsyncFunction
     #compose: ComposeFunction
-    
+
     constructor(handlerFactories: HandlerFactory[], executeAsync: ExecuteAsyncFunction, compose: ComposeFunction) {
         this.#handlerFactories = handlerFactories;
         this.#executeAsync = executeAsync;
         this.#compose = compose;
     }
 
-    async handleRequestAsync(request: GatewayRequest):Promise<GatewayResponse> {
+    async handleRequestAsync(request: GatewayRequest): Promise<GatewayResponse> {
         try {
-            const { 
-                execution: optionalExecution, 
-                requestName, 
-                requestParams: optionalRequestParams, 
-                responseTemplate: optionalResponseTemplate  
+            const {
+                execution: optionalExecution,
+                requestName,
+                requestParams: optionalRequestParams,
+                responseTemplate: optionalResponseTemplate
             } = request;
 
             const execution = optionalExecution ?? "all";
@@ -47,9 +47,9 @@ class Gateway {
             const requestParams = optionalRequestParams ?? {};
 
             const responses = await this.#executeAsync(execution, this.#handlerFactories, requestName, requestParams);
-            
+
             const response = this.#compose(responseTemplate, responses);
-    
+
             return {
                 success: true,
                 response

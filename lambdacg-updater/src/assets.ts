@@ -1,11 +1,11 @@
-import {Readable} from "node:stream";
+import { Readable } from "node:stream";
 import fs from "node:fs/promises";
-import {createReadStream} from "node:fs";
+import { createReadStream } from "node:fs";
 import path from "node:path";
 import fse from "./fs-exists";
 
 
-const findPackageRootAsync = async (startPath:string):Promise<string> => {
+const findPackageRootAsync = async (startPath: string): Promise<string> => {
     if (!fse.directoryExistsAsync(startPath)) {
         throw new Error(`Path is not a directory: ${startPath}`);
     }
@@ -16,7 +16,7 @@ const findPackageRootAsync = async (startPath:string):Promise<string> => {
     return await findPackageRootAsync(path.dirname(startPath));
 }
 
-const getAssetStreamAsync = async (assetName:string):Promise<Readable> => {
+const getAssetStreamAsync = async (assetName: string): Promise<Readable> => {
     console.log("dirname is " + __dirname);
     const packageRoot = await findPackageRootAsync(__dirname);
     console.log("package root is " + packageRoot);
@@ -30,4 +30,4 @@ const getAssetStreamAsync = async (assetName:string):Promise<Readable> => {
     return createReadStream(assetPath);
 }
 
-export {getAssetStreamAsync}
+export { getAssetStreamAsync }
