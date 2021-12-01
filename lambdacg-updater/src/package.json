@@ -16,7 +16,8 @@
   "private": true,
   "scripts": {
     "build": "tsc --build",
-    "test": "cd ../test && npm run test"
+    "test": "cd ../test && npm run test",
+    "lint": "eslint . --fix"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.1",

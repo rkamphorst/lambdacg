@@ -4,14 +4,14 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { expect } from "chai";
 
-
 describe("Unpack", () => {
-
     describe("unpackNpmPackageContentsInTarball", () => {
         it("Should unpack package to a tmp dir", async () => {
             const readStream = createReadStream("./data/biggerpackage.tgz");
-            const unpackDir = await unpackNpmPackageContentsInTarball(readStream);
-            console.log(`Unpacked in dir ${unpackDir}`)
+            const unpackDir = await unpackNpmPackageContentsInTarball(
+                readStream
+            );
+            console.log(`Unpacked in dir ${unpackDir}`);
 
             try {
                 const isDirectory = (await fs.stat(unpackDir)).isDirectory();
@@ -21,7 +21,10 @@ describe("Unpack", () => {
                 const packagejsonExists = (await fs.stat(packagejson)).isFile();
                 expect(packagejsonExists).to.be.true;
 
-                const packagejsonContents = await fs.readFile(packagejson, 'utf-8');
+                const packagejsonContents = await fs.readFile(
+                    packagejson,
+                    "utf-8"
+                );
                 expect(packagejsonContents).to.not.be.null;
 
                 const packagejsonObj = JSON.parse(packagejsonContents);
@@ -35,13 +38,10 @@ describe("Unpack", () => {
                 const libjs = path.join(unpackDir, "lib", "lib.js");
                 const libjsExists = (await fs.stat(libjs)).isFile();
                 expect(libjsExists).to.be.true;
-
             } finally {
-                await fs.rm(unpackDir, { recursive: true, force: true })
+                await fs.rm(unpackDir, { recursive: true, force: true });
                 console.log(`Removed directory with contents: ${unpackDir}`);
             }
         });
-
     });
 });
-

@@ -13,9 +13,16 @@
     "build:updater": "cd lambdacg-updater/src && npm run build",
     "test": "npm-run-all test:*",
     "test:resolver": "cd lambdacg-resolver/test && npm test",
-    "test:updater": "cd lambdacg-updater/test && npm test"
+    "test:updater": "cd lambdacg-updater/test && npm test",
+    "lint": "eslint .",
+    "lint-and-fix": "eslint . --fix"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.5.0",
+    "@typescript-eslint/parser": "^5.5.0",
+    "eslint": "^8.4.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "npm-run-all": "^4.1.5"
   }
 }

@@ -7,8 +7,12 @@ import { Readable } from "node:stream";
 import tar from "tar-stream";
 import gunzip from "gunzip-maybe";
 
-const unpackNpmPackageContentsInTarball = async (inputStream: Readable): Promise<string> => {
-    const tmpdir: string = await mkdtemp(path.join(os.tmpdir(), 'lambdacg-resolver-unpack-'));
+const unpackNpmPackageContentsInTarball = async (
+    inputStream: Readable
+): Promise<string> => {
+    const tmpdir: string = await mkdtemp(
+        path.join(os.tmpdir(), "lambdacg-resolver-unpack-")
+    );
 
     try {
         return await new Promise((resolve, reject) => {
@@ -17,7 +21,7 @@ const unpackNpmPackageContentsInTarball = async (inputStream: Readable): Promise
 
             inputStream.pipe(gunzipTransform).pipe(extractTransform);
 
-            extractTransform.on('entry', function (header, stream, next) {
+            extractTransform.on("entry", function (header, stream, next) {
                 const pkgDirMatch = /^(\.\/)?package\/(.+)$/.exec(header.name);
 
                 if (header.type == "file" && pkgDirMatch) {
@@ -30,11 +34,11 @@ const unpackNpmPackageContentsInTarball = async (inputStream: Readable): Promise
                 } else {
                     stream.resume(); // just auto drain the stream
                 }
-                stream.on('end', next);
+                stream.on("end", next);
             });
 
-            extractTransform.on('finish', () => resolve(tmpdir));
-            extractTransform.on('error', (err) => reject(err));
+            extractTransform.on("finish", () => resolve(tmpdir));
+            extractTransform.on("error", (err) => reject(err));
         });
     } catch (error) {
         await fs.rm(tmpdir, { recursive: true, force: true });
@@ -42,7 +46,4 @@ const unpackNpmPackageContentsInTarball = async (inputStream: Readable): Promise
     }
 };
 
-export {
-    unpackNpmPackageContentsInTarball
-};
-
+export { unpackNpmPackageContentsInTarball };

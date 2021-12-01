@@ -1,5 +1,8 @@
-import { HandlerResponse } from 'lambdacg-contract';
+import { HandlerResponse } from "lambdacg-contract";
 
-type ComposeFunction = (responseTemplate: HandlerResponse, responses: HandlerResponse[]) => HandlerResponse;
+type ComposeFunction = (
+    responseTemplate: HandlerResponse,
+    responses: HandlerResponse[]
+) => HandlerResponse;
 
 export { ComposeFunction };

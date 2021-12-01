@@ -1,11 +1,14 @@
-import _ from 'lodash';
-import { Gateway, GatewayRequest, GatewayResponse } from './gateway';
-import { executeAsync } from './executor';
-import { compose } from './composer';
-import { HandlerFactory } from 'lambdacg-contract';
-import { AppSyncResolverEvent } from 'aws-lambda';
+import { Gateway, GatewayRequest, GatewayResponse } from "./gateway";
+import { executeAsync } from "./executor";
+import { compose } from "./composer";
+import { HandlerFactory } from "lambdacg-contract";
+import { AppSyncResolverEvent } from "aws-lambda";
 
-const handlerFactories: HandlerFactory[] = require('./handlerFactories.json').map(require);
+/* eslint-disable @typescript-eslint/no-var-requires */
+const handlerFactories: HandlerFactory[] =
+    require("./handlerFactories.json").map(require);
+/* eslint-enable @typescript-eslint/no-var-requires */
+
 const gateway = new Gateway(handlerFactories, executeAsync, compose);
 
 /**
@@ -14,7 +17,9 @@ const gateway = new Gateway(handlerFactories, executeAsync, compose);
  * Need som hands-on testing to find out if this will work.
  */
 
-function handleEventAsync(event: AppSyncResolverEvent<GatewayRequest, Record<string, any>>): Promise<GatewayResponse> {
+function handleEventAsync(
+    event: AppSyncResolverEvent<GatewayRequest, Record<string, unknown>>
+): Promise<GatewayResponse> {
     return gateway.handleRequestAsync(event.arguments);
 }
 

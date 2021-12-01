@@ -1,6 +1,4 @@
-
 interface HandlerFactory {
-
     name: string;
 
     canHandle(requestName: string): boolean;
@@ -8,13 +6,12 @@ interface HandlerFactory {
     createHandler(requestName: string): (requestParameters: object) => object;
 }
 
-
 interface HandlerResponse {
-    [key: string]: any
+    [key: string]: unknown;
 }
 
 interface HandlerParameters {
-    [key: string]: any
+    [key: string]: unknown;
 }
 
 export { HandlerFactory, HandlerParameters, HandlerResponse };
