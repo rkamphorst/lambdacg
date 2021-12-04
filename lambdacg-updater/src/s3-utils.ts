@@ -1,7 +1,11 @@
 import { AWSError, S3 } from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
+import { URL } from "node:url";
+const getS3TarballNamesAsync = async (s3Url: string) => {
+    const { hostname: s3Bucket, pathname } = new URL(s3Url);
 
-const getS3TarballNamesAsync = async (s3Bucket: string, s3Prefix?: string) => {
+    const s3Prefix = pathname ? pathname.substr(1) : undefined;
+
     const s3Client = new S3();
     const result: string[] = [];
     let marker: string | undefined = undefined;

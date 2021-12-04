@@ -87,28 +87,39 @@ describe("S3Utils", () => {
 
     describe("getS3TarballUrlsAsync", () => {
         it(
-            "Should list package tarballs in the bucket with prefix 'prefix/'",
+            `Should list package tarballs in s3://${s3Bucket}/prefix/`,
             if_awscreds(async () => {
                 const result = await getS3TarballNamesAsync(
-                    s3Bucket,
-                    "prefix/"
+                    `s3://${s3Bucket}/prefix/`
                 );
                 expect(result).to.have.deep.members(packageFileNamesWithPrefix);
             })
         );
 
         it(
-            "Should list package tarballs in the bucket with prefix 'prefix'",
+            `Should list package tarballs in s3://${s3Bucket}/prefix`,
             if_awscreds(async () => {
-                const result = await getS3TarballNamesAsync(s3Bucket, "prefix");
+                const result = await getS3TarballNamesAsync(
+                    `s3://${s3Bucket}/prefix`
+                );
                 expect(result).to.have.deep.members(packageFileNamesWithPrefix);
             })
         );
 
         it(
-            "Should list package tarballs in the bucket without prefix",
+            `Should list package tarballs in the s3://${s3Bucket}/`,
             if_awscreds(async () => {
-                const result = await getS3TarballNamesAsync(s3Bucket);
+                const result = await getS3TarballNamesAsync(
+                    `s3://${s3Bucket}/`
+                );
+                expect(result).to.have.deep.members(packageFileNames);
+            })
+        );
+
+        it(
+            `Should list package tarballs in the s3://${s3Bucket}`,
+            if_awscreds(async () => {
+                const result = await getS3TarballNamesAsync(`s3://${s3Bucket}`);
                 expect(result).to.have.deep.members(packageFileNames);
             })
         );
