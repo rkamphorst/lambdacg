@@ -4,12 +4,32 @@ Parameters:
     Default: rkamphorst/lambdacg
 
 Resources:
+
   Role:
     Type: AWS::IAM::Role
     Properties:
       RoleName: GithubLambdaCgTestingRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Policies:
+        - PolicyName: CreateInvokeAndDeleteLambdaCgTestLambdas
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement: 
+              - Sid: PermissionToCreateFunction
+                Effect: Allow
+                Action: 
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:UpdateFunctionCode
+                  - lambda:Invoke
+                Resource: 
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:lambdacgtest-* 
+              - Sid: PermissionToPassARole
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: 
+                  - !GetAtt LambdaExecutionRole.Arn
 
       AssumeRolePolicyDocument:
         Statement:
@@ -20,6 +40,32 @@ Resources:
             Condition:
               StringLike:
                 token.actions.githubusercontent.com:sub: !Sub repo:${FullRepoName}:*
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaCgLambdaExecutionRole
+      Policies:
+        - PolicyName: DenyLoggingAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement: 
+              - Sid: DisableAllLogs
+                Action: 
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Deny
+                Resource: '*'
+
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+        
 
   GithubOidc:
     Type: AWS::IAM::OIDCProvider

@@ -8,18 +8,16 @@ import { expect, assert } from "chai";
 import { PassThrough } from "stream";
 import streamEqualAsync from "stream-equal";
 
+const dataDir = path.join(__dirname, "data", "npm-utils.test");
+
 describe("NpmUtils", () => {
     describe("readNpmPackageInfoAsync", () => {
         for (const validpackageTgz of [
             "validpackage1.tgz",
             "validpackage.tgz",
         ]) {
-            it(`Should read pakage.json from data/${validpackageTgz}`, async () => {
-                const packagePath = path.join(
-                    `${__dirname}`,
-                    "data",
-                    validpackageTgz
-                );
+            const packagePath = path.join(dataDir, validpackageTgz);
+            it(`Should read pakage.json from ${packagePath}`, async () => {
                 const readStream = fs.createReadStream(packagePath);
 
                 const packageInfo = await readNpmPackageInfoAsync(readStream);
@@ -35,12 +33,9 @@ describe("NpmUtils", () => {
             "invalidpackage.tgz",
             "invalidpackage1.tgz",
         ]) {
-            it(`Should throw an exception when reading from data/${invalidPackageTgz}`, async () => {
-                const packagePath = path.join(
-                    `${__dirname}`,
-                    "data",
-                    invalidPackageTgz
-                );
+            const packagePath = path.join(dataDir, invalidPackageTgz);
+
+            it(`Should throw an exception when reading from ${packagePath}}`, async () => {
                 const readStream = fs.createReadStream(packagePath);
 
                 await expectToThrowAsync(() =>
@@ -51,8 +46,7 @@ describe("NpmUtils", () => {
 
         it("Should be usable while parallel stream is completely read", async () => {
             const packagePath = path.join(
-                `${__dirname}`,
-                "data",
+                dataDir,
                 "biggerpackage.tgz"
             );
             const readStream = fs.createReadStream(packagePath);
@@ -88,12 +82,8 @@ describe("NpmUtils", () => {
             "validpackage1.tgz",
             "validpackage.tgz",
         ]) {
-            it(`Should store data/${validpackageTgz} and return package info`, async () => {
-                const packagePath = path.join(
-                    `${__dirname}`,
-                    "data",
-                    validpackageTgz
-                );
+            const packagePath = path.join(dataDir, validpackageTgz);
+            it(`Should store ${packagePath} and return package info`, async () => {
                 const readStream = fs.createReadStream(packagePath);
 
                 const result = await storeTemporaryNpmTarballAsync(readStream);
@@ -119,12 +109,8 @@ describe("NpmUtils", () => {
             "invalidpackage.tgz",
             "invalidpackage1.tgz",
         ]) {
-            it(`Should not store package and throw an exception when reading from data/${invalidPackageTgz}`, async () => {
-                const packagePath = path.join(
-                    `${__dirname}`,
-                    "data",
-                    invalidPackageTgz
-                );
+            const packagePath = path.join(dataDir, invalidPackageTgz);
+            it(`Should not store package and throw an exception when reading from ${packagePath}`, async () => {
                 const readStream = fs.createReadStream(packagePath);
 
                 await expectToThrowAsync(() =>

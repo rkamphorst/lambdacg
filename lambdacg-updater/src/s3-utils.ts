@@ -1,6 +1,8 @@
-import { AWSError, S3 } from "aws-sdk";
+import { AWSError, S3, Lambda } from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
 import { URL } from "node:url";
+import archiver from "archiver";
+
 const getS3TarballNamesAsync = async (s3Url: string) => {
     const { hostname: s3Bucket, pathname } = new URL(s3Url);
 
@@ -59,4 +61,21 @@ const getS3TarballNamesAsync = async (s3Url: string) => {
     return result;
 };
 
-export { getS3TarballNamesAsync };
+const updateLambdaFunctionWithDirectoryAsync = async (
+    codeDirectory: string,
+    lambdaName: string
+) => {
+    const archive = archiver("zip");
+    archive.directory(codeDirectory, false);
+    archive.finalize();
+
+    const lambdaClient = new Lambda();
+    await lambdaClient
+        .updateFunctionCode({
+            FunctionName: lambdaName,
+            ZipFile: archive,
+        })
+        .promise();
+};
+
+export { getS3TarballNamesAsync, updateLambdaFunctionWithDirectoryAsync };
