@@ -1,16 +1,18 @@
-import { stringify, v4 as uuid } from "uuid";
+import { v4 as uuid } from "uuid";
 import { getS3TarballNamesAsync } from "lambdacg-updater/s3-utils";
 import { expect } from "chai";
-import { AwsTestSession } from './aws-test-session'
+import { AwsTestSession } from "./aws-test-session";
 
 describe("S3Utils", async () => {
-
-    const awsTestSession = new AwsTestSession(msg => console.log(msg), 'eu-west-1', 'lambdacgtest-');
+    const awsTestSession = new AwsTestSession(
+        (msg) => console.log(msg),
+        "eu-west-1",
+        "lambdacgtest-"
+    );
 
     before(() => awsTestSession.initializeAsync());
 
     after(() => awsTestSession.cleanupAsync());
-
 
     describe("getS3TarballUrlsAsync", () => {
         const packageFileNames = [
@@ -34,13 +36,17 @@ describe("S3Utils", async () => {
             ...nonPackageFileNamesWithPrefix,
         ];
 
-        let s3Bucket:(string|undefined) = undefined;
+        let s3Bucket: string | undefined = undefined;
 
         before(async () => {
             if (awsTestSession.hasAwsCredentials()) {
-                const s3Contents:{[key:string]:string} =
-                    Object.assign({}, ...fileNames.map((fn) => ({[fn]: fn})));
-                s3Bucket = await awsTestSession.createS3BucketWithContentsAsync(s3Contents);
+                const s3Contents: { [key: string]: string } = Object.assign(
+                    {},
+                    ...fileNames.map((fn) => ({ [fn]: fn }))
+                );
+                s3Bucket = await awsTestSession.createS3BucketWithContentsAsync(
+                    s3Contents
+                );
             }
         });
 
@@ -82,5 +88,4 @@ describe("S3Utils", async () => {
             })
         );
     });
-
 });

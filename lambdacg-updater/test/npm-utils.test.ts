@@ -45,10 +45,7 @@ describe("NpmUtils", () => {
         }
 
         it("Should be usable while parallel stream is completely read", async () => {
-            const packagePath = path.join(
-                dataDir,
-                "biggerpackage.tgz"
-            );
+            const packagePath = path.join(dataDir, "biggerpackage.tgz");
             const readStream = fs.createReadStream(packagePath);
             const fileCopyStream = new PassThrough();
             const readInfoStream = new PassThrough();

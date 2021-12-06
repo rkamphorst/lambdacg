@@ -8,7 +8,9 @@ const dataDir = path.join(__dirname, "data", "unpack.test");
 describe("Unpack", () => {
     describe("unpackNpmPackageContentsInTarball", () => {
         it("Should unpack package to a tmp dir", async () => {
-            const readStream = createReadStream(path.join(dataDir, "biggerpackage.tgz"));
+            const readStream = createReadStream(
+                path.join(dataDir, "biggerpackage.tgz")
+            );
             const unpackDir = await unpackNpmPackageContentsInTarball(
                 readStream
             );
