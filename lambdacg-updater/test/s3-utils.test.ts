@@ -3,18 +3,25 @@ import { getS3TarballNamesAsync } from "lambdacg-updater/s3-utils";
 import { expect } from "chai";
 import { AwsTestSession } from "./aws-test-session";
 
-describe("S3Utils", async () => {
+const debugTest: (message: string) => void = () => {};
+
+describe("S3Utils", async function () {
     const awsTestSession = new AwsTestSession(
-        (msg) => console.log(msg),
+        debugTest,
         "eu-west-1",
         "lambdacgtest-"
     );
+
+    // these tests are over the network and can be quite slow.
+    // therefore we set long timeout and log slowness theshold
+    this.timeout("12s");
+    this.slow("8s");
 
     before(() => awsTestSession.initializeAsync());
 
     after(() => awsTestSession.cleanupAsync());
 
-    describe("getS3TarballUrlsAsync", () => {
+    describe("getS3TarballUrlsAsync", function () {
         const packageFileNames = [
             "tgz.file.tgz",
             "tar.gz.file.tar.gz",
@@ -38,7 +45,7 @@ describe("S3Utils", async () => {
 
         let s3Bucket: string | undefined = undefined;
 
-        before(async () => {
+        before(async function () {
             if (awsTestSession.hasAwsCredentials()) {
                 const s3Contents: { [key: string]: string } = Object.assign(
                     {},
@@ -52,7 +59,7 @@ describe("S3Utils", async () => {
 
         it(
             "Should list package tarballs in s3://[s3Bucket]/prefix/",
-            awsTestSession.withAws(async () => {
+            awsTestSession.withAws(async function () {
                 const result = await getS3TarballNamesAsync(
                     `s3://${s3Bucket}/prefix/`
                 );
@@ -62,7 +69,7 @@ describe("S3Utils", async () => {
 
         it(
             "Should list package tarballs in s3://[s3Bucket]/prefix",
-            awsTestSession.withAws(async () => {
+            awsTestSession.withAws(async function () {
                 const result = await getS3TarballNamesAsync(
                     `s3://${s3Bucket}/prefix`
                 );
@@ -72,7 +79,7 @@ describe("S3Utils", async () => {
 
         it(
             "Should list package tarballs in s3://[s3Bucket]/",
-            awsTestSession.withAws(async () => {
+            awsTestSession.withAws(async function () {
                 const result = await getS3TarballNamesAsync(
                     `s3://${s3Bucket}/`
                 );
@@ -82,7 +89,7 @@ describe("S3Utils", async () => {
 
         it(
             "Should list package tarballs in s3://[s3Bucket]",
-            awsTestSession.withAws(async () => {
+            awsTestSession.withAws(async function () {
                 const result = await getS3TarballNamesAsync(`s3://${s3Bucket}`);
                 expect(result).to.have.deep.members(packageFileNames);
             })

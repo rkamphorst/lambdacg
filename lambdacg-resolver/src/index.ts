@@ -4,10 +4,13 @@ import { compose } from "./composer";
 import { HandlerFactory } from "lambdacg-contract";
 import { AppSyncResolverEvent } from "aws-lambda";
 
-/* eslint-disable @typescript-eslint/no-var-requires */
-const handlerFactories: HandlerFactory[] =
-    require("./handlerFactories.json").map(require);
-/* eslint-enable @typescript-eslint/no-var-requires */
+async function getHandlerFactoriesAsync() {
+    const moduleNames = (await import("./handlerFactories.json")) as string[];
+
+    return await Promise.all(
+        moduleNames.map(async (name) => (await import(name)) as HandlerFactory)
+    );
+}
 
 const gateway = new Gateway(handlerFactories, executeAsync, compose);
 

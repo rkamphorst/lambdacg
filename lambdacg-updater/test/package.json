@@ -6,8 +6,8 @@
     "../src"
   ],
   "scripts": {
-    "test": "mocha -r 'ts-node/register' --timeout 30000 **/*.test.ts",
-    "test-watch": "mocha --r ts-node/register --timeout 30000 --extensions ts,tsx --watch --watch-files '../src' --watch-files . '**/*.test.ts'"
+    "test": "mocha -r 'ts-node/register' **/*.test.ts",
+    "test-watch": "mocha --r ts-node/register --extensions ts,tsx --watch --watch-files '../src' --watch-files . '**/*.test.ts'"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.1",

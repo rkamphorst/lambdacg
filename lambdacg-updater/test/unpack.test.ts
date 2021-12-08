@@ -4,6 +4,8 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { expect } from "chai";
 
+const debugTest: (message: string) => void = () => {};
+
 const dataDir = path.join(__dirname, "data", "unpack.test");
 describe("Unpack", () => {
     describe("unpackNpmPackageContentsInTarball", () => {
@@ -14,7 +16,7 @@ describe("Unpack", () => {
             const unpackDir = await unpackNpmPackageContentsInTarball(
                 readStream
             );
-            console.log(`Unpacked in dir ${unpackDir}`);
+            debugTest(`Unpacked in dir ${unpackDir}`);
 
             try {
                 const isDirectory = (await fs.stat(unpackDir)).isDirectory();
@@ -43,7 +45,7 @@ describe("Unpack", () => {
                 expect(libjsExists).to.be.true;
             } finally {
                 await fs.rm(unpackDir, { recursive: true, force: true });
-                console.log(`Removed directory with contents: ${unpackDir}`);
+                debugTest(`Removed directory with contents: ${unpackDir}`);
             }
         });
     });

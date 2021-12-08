@@ -15,11 +15,8 @@ const findPackageRootAsync = async (startPath: string): Promise<string> => {
 };
 
 const getAssetStreamAsync = async (assetName: string): Promise<Readable> => {
-    console.log("dirname is " + __dirname);
     const packageRoot = await findPackageRootAsync(__dirname);
-    console.log("package root is " + packageRoot);
     const assetPath = path.join(packageRoot, "assets", assetName);
-    console.log("asset path is " + assetPath);
 
     if (!(await fse.fileExistsAsync(assetPath))) {
         throw new Error(`Asset not found: ${assetName}`);

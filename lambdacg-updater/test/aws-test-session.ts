@@ -12,6 +12,7 @@ class AwsTestSession {
     #resourceNamePrefix: string;
 
     #tempS3Contents: { [key: string]: string[] } = {};
+    #tempS3Buckets: string[] = [];
     #tempLambdas: string[] = [];
 
     #inform: (message: string) => void;
@@ -29,6 +30,14 @@ class AwsTestSession {
         this.#hasAwsCredentials = undefined;
         this.#resourceNamePrefix = resourceNamePrefix;
         this.#inform = inform;
+    }
+
+    lambdaClient() {
+        return this.#lambdaClient;
+    }
+
+    s3Client() {
+        return this.s3Client;
     }
 
     hasAwsCredentials() {
@@ -70,8 +79,8 @@ class AwsTestSession {
                 },
             })
             .promise();
-        this.#tempS3Contents[s3Bucket] = [];
-        this.#inform(`Created S3 bucket ${s3Bucket}`);
+        this.#tempS3Buckets.push(s3Bucket);
+        this.#inform(`Created s3 bucket ${s3Bucket}`);
         return s3Bucket;
     }
 
@@ -89,12 +98,15 @@ class AwsTestSession {
                     .promise()
             )
         );
+        if (!(s3Bucket in this.#tempS3Contents)) {
+            this.#tempS3Contents[s3Bucket] = [];
+        }
         this.#tempS3Contents[s3Bucket].push(...Object.keys(contents));
 
         this.#inform(
             `Uploaded ${
                 Object.keys(contents).length
-            } objects to S3 bucket ${s3Bucket}`
+            } objects to s3 bucket ${s3Bucket}`
         );
         return s3Bucket;
     }
@@ -123,6 +135,22 @@ class AwsTestSession {
     async createLambdaAndAwaitReadinessAsync(zipFileContents: Buffer) {
         const functionName = await this.createLambdaAsync(zipFileContents);
 
+        await this.awaitLambdaReadiness(functionName);
+
+        const response = await this.#lambdaClient
+            .invoke({
+                FunctionName: functionName,
+                Payload: "{}",
+            })
+            .promise();
+        this.#inform(
+            `Invoked lambda ${functionName} -- response: ${response.Payload}`
+        );
+
+        return functionName;
+    }
+
+    async awaitLambdaReadiness(functionName: string) {
         let lastUpdateStatus: string | undefined = "__initial__";
 
         while ("Successful" !== lastUpdateStatus) {
@@ -140,18 +168,6 @@ class AwsTestSession {
                     .promise()
             ).Configuration?.LastUpdateStatus;
         }
-
-        const response = await this.#lambdaClient
-            .invoke({
-                FunctionName: functionName,
-                Payload: "{}",
-            })
-            .promise();
-        this.#inform(
-            `Invoked lambda ${functionName} -- response: ${response.Payload}`
-        );
-
-        return functionName;
     }
 
     async cleanupAsync() {
@@ -186,21 +202,84 @@ class AwsTestSession {
     async #cleanupS3BucketsAsync() {
         await this.#cleanupS3ContentsAsync();
 
-        const toDelete = Object.keys(this.#tempS3Contents);
+        const toDelete = [...this.#tempS3Buckets];
 
         if (toDelete.length == 0) {
             return;
         }
 
-        for (const bucket in toDelete) {
-            delete this.#tempS3Contents[bucket];
-        }
+        this.#tempS3Buckets.length = 0;
 
+        let counter = 0;
+        let deleteBucketSuccess = true;
         await Promise.all(
-            toDelete.map((d) => this.#s3Client.deleteBucket({ Bucket: d }))
+            toDelete.map(async (d) => {
+                const deleteObjectsSuccess =
+                    await this.#deleteS3BucketObjectsAsync(d);
+
+                if (!deleteObjectsSuccess) {
+                    this.#inform(
+                        `Not all objects were deleted, cannot delete s3 bucket ${d}`
+                    );
+                    deleteBucketSuccess = false;
+                    return;
+                }
+
+                await this.#s3Client.deleteBucket({ Bucket: d }).promise();
+                counter++;
+            })
         );
 
-        this.#inform(`Deleted ${toDelete.length} S3 bucket(s)`);
+        this.#inform(`Deleted ${counter} s3 bucket(s)`);
+        return deleteBucketSuccess;
+    }
+
+    async #deleteS3BucketObjectsAsync(s3Bucket: string) {
+        let continuation: string | undefined;
+        let counter = 0;
+        let deleteSuccessful = true;
+        do {
+            const response = await this.#s3Client
+                .listObjectsV2({
+                    Bucket: s3Bucket,
+                    ContinuationToken: continuation,
+                })
+                .promise();
+
+            const { Contents: contents, IsTruncated: isTruncated } = response;
+
+            continuation = isTruncated ? response.ContinuationToken : undefined;
+
+            if (contents) {
+                await Promise.all(
+                    contents.map(async (s3Obj) => {
+                        if (s3Obj.Key) {
+                            try {
+                                await this.#s3Client
+                                    .deleteObject({
+                                        Bucket: s3Bucket,
+                                        Key: s3Obj.Key,
+                                    })
+                                    .promise();
+                                counter++;
+                            } catch {
+                                this.#inform(
+                                    `Could not delete s3://${s3Bucket}/${s3Obj.Key}`
+                                );
+                                deleteSuccessful = false;
+                            }
+                        }
+                    })
+                );
+            }
+        } while (continuation);
+
+        if (counter > 0) {
+            this.#inform(
+                `Deleted ${counter} untracked object(s) from s3 bucket ${s3Bucket}`
+            );
+        }
+        return deleteSuccessful;
     }
 
     async #cleanupS3ContentsAsync() {
@@ -224,7 +303,7 @@ class AwsTestSession {
         await Promise.all(
             toDelete.map((d) => this.#s3Client.deleteObject(d).promise())
         );
-        this.#inform(`Deleted ${toDelete.length} S3 object(s)`);
+        this.#inform(`Deleted ${toDelete.length} tracked S3 object(s)`);
     }
 
     #generateName() {
