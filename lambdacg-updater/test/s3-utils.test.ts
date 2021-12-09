@@ -12,6 +12,7 @@ const debugTest: (message: string) => void = (message) => {
 };
 
 describe("S3Utils", async function () {
+    debugTestCallback = undefined;
     const awsTestSession = new AwsTestSession(
         debugTest,
         "eu-west-1",

@@ -15,6 +15,8 @@ const debugTest: (message: string) => void = (message) => {
 const dataDir = path.join(__dirname, "data", "lambda-utils.test");
 
 describe("LambdaUtils", async function () {
+    debugTestCallback = undefined;
+
     const awsTestSession = new AwsTestSession(
         debugTest,
         "eu-west-1",

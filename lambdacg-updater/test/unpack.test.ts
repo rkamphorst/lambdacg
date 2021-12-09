@@ -14,6 +14,7 @@ const debugTest: (message: string) => void = (message) => {
 
 const dataDir = path.join(__dirname, "data", "unpack.test");
 describe("Unpack", () => {
+    debugTestCallback = undefined;
     describe("unpackNpmPackageContentsInTarball", () => {
         it("Should unpack package to a tmp dir", async () => {
             const readStream = createReadStream(
