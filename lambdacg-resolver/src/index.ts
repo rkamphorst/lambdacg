@@ -1,18 +1,21 @@
 import { Gateway, GatewayRequest, GatewayResponse } from "./gateway";
 import { executeAsync } from "./executor";
 import { compose } from "./composer";
-import { HandlerFactory } from "lambdacg-contract";
 import { AppSyncResolverEvent } from "aws-lambda";
+import { ProviderFromImport } from "./provider";
+import fs from "node:fs/promises";
 
-async function getHandlerFactoriesAsync() {
-    const moduleNames = (await import("./handlerFactories.json")) as string[];
-
-    return await Promise.all(
-        moduleNames.map(async (name) => (await import(name)) as HandlerFactory)
-    );
-}
-
-const gateway = new Gateway(handlerFactories, executeAsync, compose);
+const gateway = new Gateway(
+    new ProviderFromImport(async () =>
+        JSON.parse(
+            (await fs.readFile(`${__dirname}/handlerFactories.json`)).toString(
+                "utf-8"
+            )
+        )
+    ),
+    executeAsync,
+    compose
+);
 
 /**
  * The following is a naïve implementation of a handler for appsync resolver events,

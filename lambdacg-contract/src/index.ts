@@ -3,8 +3,12 @@ interface HandlerFactory {
 
     canHandle(requestName: string): boolean;
 
-    createHandler(requestName: string): (requestParameters: object) => object;
+    createHandler(requestName: string): HandlerFunction;
 }
+
+type HandlerFunction = (
+    requestParameters: HandlerParameters
+) => HandlerResponse;
 
 interface HandlerResponse {
     [key: string]: unknown;
@@ -14,4 +18,4 @@ interface HandlerParameters {
     [key: string]: unknown;
 }
 
-export { HandlerFactory, HandlerParameters, HandlerResponse };
+export { HandlerFactory, HandlerFunction, HandlerParameters, HandlerResponse };

@@ -1,5 +1,6 @@
 import { ExecuteAsyncFunction } from "./executor-contract";
 import { ComposeFunction } from "./composer-contract";
+import { ProviderInterface } from "./provider-contract";
 import { HandlerFactory } from "lambdacg-contract";
 
 type GatewayRequest = {
@@ -22,16 +23,16 @@ type GatewayErrorResponse = {
 type GatewayResponse = GatewaySuccessResponse | GatewayErrorResponse;
 
 class Gateway {
-    #handlerFactories: HandlerFactory[];
+    #handlerFactoryProvider: ProviderInterface<HandlerFactory>;
     #executeAsync: ExecuteAsyncFunction;
     #compose: ComposeFunction;
 
     constructor(
-        handlerFactories: HandlerFactory[],
+        handlerFactoryProvider: ProviderInterface<HandlerFactory>,
         executeAsync: ExecuteAsyncFunction,
         compose: ComposeFunction
     ) {
-        this.#handlerFactories = handlerFactories;
+        this.#handlerFactoryProvider = handlerFactoryProvider;
         this.#executeAsync = executeAsync;
         this.#compose = compose;
     }
@@ -51,9 +52,12 @@ class Gateway {
             const responseTemplate = optionalResponseTemplate ?? {};
             const requestParams = optionalRequestParams ?? {};
 
+            const handlerFactories =
+                await this.#handlerFactoryProvider.provideAsync();
+
             const responses = await this.#executeAsync(
                 execution,
-                this.#handlerFactories,
+                handlerFactories,
                 requestName,
                 requestParams
             );

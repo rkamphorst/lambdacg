@@ -1,4 +1,4 @@
-import { HandlerFactory } from "lambdacg-contract";
+import { HandlerFactory, HandlerFunction } from "lambdacg-contract";
 import { executeAsync } from "lambdacg-resolver/executor";
 import { assert, expect } from "chai";
 import sinon from "sinon";
@@ -236,12 +236,12 @@ async function expectToThrowAsync(
 function createHandlerFactory(
     name: string,
     canHandle: (requestName: string) => boolean,
-    handler: () => object
+    handler: HandlerFunction
 ): HandlerFactory {
     const factory: HandlerFactory = {
         name: name,
         canHandle: canHandle,
-        createHandler: function (): () => object {
+        createHandler: function (): HandlerFunction {
             return handler;
         },
     };
