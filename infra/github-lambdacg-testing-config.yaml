@@ -20,9 +20,10 @@ Resources:
                 Effect: Allow
                 Action: 
                   - lambda:CreateFunction
+                  - lambda:GetFunction
                   - lambda:DeleteFunction
                   - lambda:UpdateFunctionCode
-                  - lambda:Invoke
+                  - lambda:InvokeFunction
                 Resource: 
                   - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:lambdacgtest-* 
               - Sid: PermissionToPassARole
@@ -30,7 +31,6 @@ Resources:
                 Action: iam:PassRole
                 Resource: 
                   - !GetAtt LambdaExecutionRole.Arn
-
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
