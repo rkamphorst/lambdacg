@@ -4,7 +4,14 @@ import path from "node:path";
 import { AwsTestSession } from "./aws-test-session";
 import { updateLambdaFunctionWithDirectoryAsync } from "lambdacg-updater/lambda-utils";
 
-const debugTest: (message: string) => void = () => {};
+let debugTestCallback: ((message: string) => void) | undefined = undefined;
+
+const debugTest: (message: string) => void = (message) => {
+    if (debugTestCallback) {
+        debugTestCallback(message);
+    }
+};
+
 const dataDir = path.join(__dirname, "data", "lambda-utils.test");
 
 describe("LambdaUtils", async function () {
@@ -59,13 +66,16 @@ describe("LambdaUtils", async function () {
                     await fs.rm(tmpdir, { recursive: true, force: true });
                 }
 
-                // await awsTestSession.awaitLambdaReadiness(lambdaFunction);
+                await awsTestSession.awaitLambdaReadiness(lambdaFunction);
 
-                // var response = await awsTestSession.lambdaClient()
-                //     .invoke({FunctionName: lambdaFunction})
-                //     .promise();
+                const response = await awsTestSession
+                    .lambdaClient()
+                    .invoke({ FunctionName: lambdaFunction })
+                    .promise();
 
-                // expect(JSON.parse(response.Payload as string)).to.be.deep.equal({result: "updated"});
+                expect(JSON.parse(response.Payload as string)).to.be.deep.equal(
+                    { result: "updated" }
+                );
             })
         );
     });

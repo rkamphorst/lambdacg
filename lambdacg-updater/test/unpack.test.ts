@@ -4,7 +4,13 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { expect } from "chai";
 
-const debugTest: (message: string) => void = () => {};
+let debugTestCallback: ((message: string) => void) | undefined = undefined;
+
+const debugTest: (message: string) => void = (message) => {
+    if (debugTestCallback) {
+        debugTestCallback(message);
+    }
+};
 
 const dataDir = path.join(__dirname, "data", "unpack.test");
 describe("Unpack", () => {

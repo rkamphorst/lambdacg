@@ -3,7 +3,13 @@ import { getS3TarballNamesAsync } from "lambdacg-updater/s3-utils";
 import { expect } from "chai";
 import { AwsTestSession } from "./aws-test-session";
 
-const debugTest: (message: string) => void = () => {};
+let debugTestCallback: ((message: string) => void) | undefined = undefined;
+
+const debugTest: (message: string) => void = (message) => {
+    if (debugTestCallback) {
+        debugTestCallback(message);
+    }
+};
 
 describe("S3Utils", async function () {
     const awsTestSession = new AwsTestSession(
