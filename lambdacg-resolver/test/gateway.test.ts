@@ -3,6 +3,7 @@ import sinon from "sinon";
 import { Gateway } from "lambdacg-resolver/gateway";
 import { ComposeFunction } from "lambdacg-resolver/composer-contract";
 import { ExecuteAsyncFunction } from "lambdacg-resolver/executor-contract";
+import { ProvideHandlerFactoriesAsyncFunction } from "lambdacg-resolver/handler-factory-provider-contract";
 
 describe("Gateway", () => {
     it("Should call compose and execute", async () => {
@@ -16,9 +17,17 @@ describe("Gateway", () => {
             .returns(Promise.resolve([{ executeResponse: "executeResponse" }]));
         const executeAsync: ExecuteAsyncFunction = executeAsyncStub;
 
-        const provider = { provideAsync: () => Promise.resolve([]) };
+        const provideHandlerFactoriesAsyncStub = sinon
+            .stub()
+            .returns(Promise.resolve([]));
+        const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
+            provideHandlerFactoriesAsyncStub;
 
-        const gateway = new Gateway(provider, executeAsync, compose);
+        const gateway = new Gateway(
+            provideHandlerFactoriesAsync,
+            executeAsync,
+            compose
+        );
 
         const result = await gateway.handleRequestAsync({
             execution: "execution",
@@ -55,9 +64,17 @@ describe("Gateway", () => {
             .returns(Promise.resolve([{ executeResponse: "executeResponse" }]));
         const executeAsync: ExecuteAsyncFunction = executeAsyncStub;
 
-        const provider = { provideAsync: () => Promise.resolve([]) };
+        const provideHandlerFactoriesAsyncStub = sinon
+            .stub()
+            .returns(Promise.resolve([]));
+        const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
+            provideHandlerFactoriesAsyncStub;
 
-        const gateway = new Gateway(provider, executeAsync, compose);
+        const gateway = new Gateway(
+            provideHandlerFactoriesAsync,
+            executeAsync,
+            compose
+        );
 
         const result = await gateway.handleRequestAsync({
             requestName: "requestName",
@@ -87,9 +104,17 @@ describe("Gateway", () => {
             .throws(new Error("executeAsyncError"));
         const executeAsync: ExecuteAsyncFunction = executeAsyncStub;
 
-        const provider = { provideAsync: () => Promise.resolve([]) };
+        const provideHandlerFactoriesAsyncStub = sinon
+            .stub()
+            .returns(Promise.resolve([]));
+        const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
+            provideHandlerFactoriesAsyncStub;
 
-        const gateway = new Gateway(provider, executeAsync, compose);
+        const gateway = new Gateway(
+            provideHandlerFactoriesAsync,
+            executeAsync,
+            compose
+        );
 
         const result = await gateway.handleRequestAsync({
             requestName: "requestName",
@@ -117,9 +142,17 @@ describe("Gateway", () => {
             .returns(Promise.reject(new Error("executeAsyncError")));
         const executeAsync: ExecuteAsyncFunction = executeAsyncStub;
 
-        const provider = { provideAsync: () => Promise.resolve([]) };
+        const provideHandlerFactoriesAsyncStub = sinon
+            .stub()
+            .returns(Promise.resolve([]));
+        const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
+            provideHandlerFactoriesAsyncStub;
 
-        const gateway = new Gateway(provider, executeAsync, compose);
+        const gateway = new Gateway(
+            provideHandlerFactoriesAsync,
+            executeAsync,
+            compose
+        );
 
         const result = await gateway.handleRequestAsync({
             requestName: "requestName",
@@ -145,9 +178,17 @@ describe("Gateway", () => {
             .returns(Promise.resolve(["executeResponse"]));
         const executeAsync: ExecuteAsyncFunction = executeAsyncStub;
 
-        const provider = { provideAsync: () => Promise.resolve([]) };
+        const provideHandlerFactoriesAsyncStub = sinon
+            .stub()
+            .returns(Promise.resolve([]));
+        const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
+            provideHandlerFactoriesAsyncStub;
 
-        const gateway = new Gateway(provider, executeAsync, compose);
+        const gateway = new Gateway(
+            provideHandlerFactoriesAsync,
+            executeAsync,
+            compose
+        );
 
         const result = await gateway.handleRequestAsync({
             requestName: "requestName",

@@ -1,18 +1,11 @@
 import { Gateway, GatewayRequest, GatewayResponse } from "./gateway";
 import { executeAsync } from "./executor";
 import { compose } from "./composer";
+import { provideHandlerFactoriesAsync } from "./handler-factory-provider";
 import { AppSyncResolverEvent } from "aws-lambda";
-import { ProviderFromImport } from "./provider";
-import fs from "node:fs/promises";
 
 const gateway = new Gateway(
-    new ProviderFromImport(async () =>
-        JSON.parse(
-            (await fs.readFile(`${__dirname}/handlerFactories.json`)).toString(
-                "utf-8"
-            )
-        )
-    ),
+    provideHandlerFactoriesAsync,
     executeAsync,
     compose
 );
