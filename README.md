@@ -7,7 +7,7 @@ between the backend services. Teams would need to communicate a lot, and from ti
 
 This repository contains the Lambda Composition Gateway (LambdaCG), a proof of concept that decouples software components like these. 
 
-## Testing, building, running
+## Building and testing
 
 Required tool: [nodejs (including npm)](https://nodejs.org/en/download/). 
 
@@ -27,7 +27,23 @@ To run all the unit tests (again, at the root of the repo):
 
 This repository has a so-called *monorepo* setup, which means each of the three projects can also be independently built, tested and run.
 
-Running is (for now) not possible. 
+### Testing AWS functionality
+
+There are a few AWS components are in the [lambdacg-updater](./lambdacg-updater) project. 
+
+In order run the (unit/integration) test for AWS components, you need an AWS account. If you do not have an aws account configured, these tests will be skipped.
+
+If you want to run these tests by yourself, you can do the following:
+
+1. Fork this repository
+2. Follow instructions on how to create an AWS account [here](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/). 
+3. Download the [AWS command-line interface](https://aws.amazon.com/cli/) and then [configure it](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
+4. Deploy the testing configuration by running the [infra/deploy-github-lambdacg-testing-config.sh](infra/deploy-github-lambdacg-testing-config.sh) script.
+5. (Optional): Enable github actions running these tests on your repository by installing a secret with the name `AWS_TESTING_ROLE`, containing the ARN of the GithubLambdaCgTestingRole role that was deployed by the script.
+
+**NOTE**: 
+* All the AWS tests that run will create some infrastructure and clean up again after they finish.
+* Note that running tests against your AWS account will cost you (a little bit) of money. 
 
 ## Architecture
 
