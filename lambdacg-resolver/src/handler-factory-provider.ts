@@ -1,9 +1,8 @@
-import { ProvideHandlerFactoriesAsyncFunction } from "./handler-factory-provider-contract";
+import { ProvideHandlerFactoriesAsyncFunction } from "./gateway-contract";
 import { HandlerFactory } from "lambdacg-contract";
 import fs from "node:fs/promises";
-import path from "node:path";
 
-const getModuleNamesFromFileAsync = async (filePath: string) => {
+const getModuleNamesFromJsonFileAsync = async (filePath: string) => {
     const fileContents = (
         await fs.readFile(`${__dirname}/${filePath}`)
     ).toString("utf-8");
@@ -26,7 +25,7 @@ const getModuleNamesFromFileAsync = async (filePath: string) => {
     return listOfStrings;
 };
 
-const moduleAsHandlerFactoryOrThrow = (
+const importModuleAsHandlerFactoryOrThrow = (
     moduleName: string,
     module: unknown
 ): HandlerFactory => {
@@ -66,18 +65,31 @@ const moduleAsHandlerFactoryOrThrow = (
     return module as HandlerFactory;
 };
 
+let handlerFactoryListSource: () => Promise<string[]> | undefined = undefined;
 let handlerFactoryModules: HandlerFactory[] | undefined = undefined;
+
+const setHandlerFactoryListSource = (callback: () => Promise<string[]>) => {
+    handlerFactoryListSource = callback;
+    handlerFactoryModules = undefined;
+};
 
 const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
     async () => {
-        if (handlerFactoryModules === undefined) {
-            const moduleNames = await getModuleNamesFromFileAsync(
-                path.join(__dirname, "handlerFactories.json")
+        if (!handlerFactoryListSource) {
+            throw new Error(
+                "No handler factory list source was set (use setHandlerFactoryListSource())"
             );
+        }
+
+        if (!handlerFactoryModules) {
+            const moduleNames = await handlerFactoryListSource();
 
             handlerFactoryModules = await Promise.all(
                 moduleNames.map(async (name) =>
-                    moduleAsHandlerFactoryOrThrow(name, await import(name))
+                    importModuleAsHandlerFactoryOrThrow(
+                        name,
+                        await import(name)
+                    )
                 )
             );
         }
@@ -85,4 +97,8 @@ const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
         return handlerFactoryModules;
     };
 
-export { provideHandlerFactoriesAsync };
+export {
+    provideHandlerFactoriesAsync,
+    setHandlerFactoryListSource,
+    getModuleNamesFromJsonFileAsync,
+};

@@ -1,27 +1,13 @@
-import { ExecuteAsyncFunction } from "./executor-contract";
-import { ComposeFunction } from "./composer-contract";
-import { ProvideHandlerFactoriesAsyncFunction } from "./handler-factory-provider-contract";
+import {
+    ExecuteAsyncFunction,
+    ComposeFunction,
+    ProvideHandlerFactoriesAsyncFunction,
+    GatewayRequest,
+    GatewayResponse,
+    GatewayInterface,
+} from "./gateway-contract";
 
-type GatewayRequest = {
-    execution?: string;
-    requestName: string;
-    requestParams?: { [key: string]: unknown };
-    responseTemplate?: { [key: string]: unknown };
-};
-
-type GatewaySuccessResponse = {
-    success: true;
-    response: { [key: string]: unknown };
-};
-
-type GatewayErrorResponse = {
-    success: false;
-    error: string | object;
-};
-
-type GatewayResponse = GatewaySuccessResponse | GatewayErrorResponse;
-
-class Gateway {
+class Gateway implements GatewayInterface {
     #handlerFactoryProviderAsync: ProvideHandlerFactoriesAsyncFunction;
     #executeAsync: ExecuteAsyncFunction;
     #compose: ComposeFunction;
@@ -75,10 +61,4 @@ class Gateway {
     }
 }
 
-export {
-    Gateway,
-    GatewayRequest,
-    GatewayErrorResponse,
-    GatewaySuccessResponse,
-    GatewayResponse,
-};
+export { Gateway };

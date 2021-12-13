@@ -3,7 +3,8 @@ import {
     HandlerParameters,
     HandlerResponse,
 } from "lambdacg-contract";
-import { ExecuteAsyncFunction, Executor } from "./executor-contract";
+import { Executor } from "./executor-contract";
+import { ExecuteAsyncFunction } from "./gateway-contract";
 
 class OptionalExecutor implements Executor {
     execution = "optional";

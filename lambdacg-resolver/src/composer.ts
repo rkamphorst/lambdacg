@@ -1,6 +1,6 @@
 import { HandlerResponse } from "lambdacg-contract";
 import _ from "lodash";
-import { ComposeFunction } from "./composer-contract";
+import { ComposeFunction } from "./gateway-contract";
 
 interface DictionaryObject {
     [key: string]: unknown;

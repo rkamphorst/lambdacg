@@ -4,13 +4,6 @@ import {
     HandlerParameters,
 } from "lambdacg-contract";
 
-type ExecuteAsyncFunction = (
-    execution: string,
-    handlerFactories: HandlerFactory[],
-    requestName: string,
-    requestParams: HandlerParameters
-) => Promise<HandlerResponse[]>;
-
 interface Executor {
     execution: string;
     startExecute(
@@ -25,4 +18,4 @@ interface Executor {
     ): Promise<HandlerResponse[]>;
 }
 
-export { ExecuteAsyncFunction, Executor };
+export { Executor };
