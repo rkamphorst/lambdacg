@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 
 const tmpNameAsync = promisify(tmpName);
 
-describe("FsExists", () => {
+describe("FsUtils", () => {
     describe("fileExistsAsync", () => {
         it("Should return true if it exists and is a file", async () => {
             const filename = await tmpNameAsync();
