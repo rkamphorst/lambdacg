@@ -1,14 +1,14 @@
 import { Readable } from "node:stream";
 import { createReadStream } from "node:fs";
 import path from "node:path";
-import fse from "./fs-exists";
+import fsu from "./fs-utils";
 
 const findPackageRootAsync = async (startPath: string): Promise<string> => {
-    if (!fse.directoryExistsAsync(startPath)) {
+    if (!fsu.directoryExistsAsync(startPath)) {
         throw new Error(`Path is not a directory: ${startPath}`);
     }
 
-    if (await fse.fileExistsAsync(path.join(startPath, "package.json"))) {
+    if (await fsu.fileExistsAsync(path.join(startPath, "package.json"))) {
         return startPath;
     }
     return await findPackageRootAsync(path.dirname(startPath));
@@ -18,7 +18,7 @@ const getAssetStreamAsync = async (assetName: string): Promise<Readable> => {
     const packageRoot = await findPackageRootAsync(__dirname);
     const assetPath = path.join(packageRoot, "assets", assetName);
 
-    if (!(await fse.fileExistsAsync(assetPath))) {
+    if (!(await fsu.fileExistsAsync(assetPath))) {
         throw new Error(`Asset not found: ${assetName}`);
     }
 

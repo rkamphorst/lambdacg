@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { AwsTestSession } from "./aws-test-session";
+import { AwsTestSession } from "./lib/aws-test-session";
 import { updateLambdaFunctionWithDirectoryAsync } from "lambdacg-updater/lambda-utils";
 
 let debugTestCallback: ((message: string) => void) | undefined = undefined;
@@ -24,9 +24,9 @@ describe("LambdaUtils", async function () {
     );
 
     // these tests are over the network and can be quite slow.
-    // therefore we set long timeout and log slowness theshold
-    this.timeout("12s");
-    this.slow("8s");
+    // therefore we set long timeout and long slowness theshold
+    this.timeout("15s");
+    this.slow("10s");
 
     before(() => awsTestSession.initializeAsync());
 

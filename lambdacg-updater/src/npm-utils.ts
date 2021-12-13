@@ -4,8 +4,8 @@ import { finished as streamFinishedAsync } from "stream/promises";
 import tarStream from "tar-stream";
 import gunzip from "gunzip-maybe";
 import { tmpName } from "tmp";
-import { createWriteStream, unlink } from "fs";
-import { promisify } from "util";
+import { createWriteStream } from "fs";
+import fsu from "./fs-utils";
 
 type NpmPackageInfo = {
     [key: string]: unknown;
@@ -118,12 +118,6 @@ function readNpmPackageInfoAsync(stream: Readable): Promise<NpmPackageInfo> {
     });
 }
 
-const unlinkAsync = promisify(unlink);
-const tryRemoveFileAsync = (filename: string): Promise<boolean> => {
-    return unlinkAsync(filename)
-        .then(() => true)
-        .catch(() => false);
-};
 const tmpTgzNameAsync = (dirname?: string): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
         tmpName(
@@ -164,7 +158,7 @@ async function storeTemporaryNpmTarballAsync(
         };
     } catch (e) {
         destStream.destroy();
-        await tryRemoveFileAsync(destTgz);
+        await fsu.tryRemoveFileAsync(destTgz);
         throw e;
     }
 }

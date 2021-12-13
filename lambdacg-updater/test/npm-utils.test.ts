@@ -4,16 +4,17 @@ import {
     readNpmPackageInfoAsync,
     storeTemporaryNpmTarballAsync,
 } from "lambdacg-updater/npm-utils";
-import { expect, assert } from "chai";
+import { expect } from "chai";
 import { PassThrough } from "stream";
 import streamEqualAsync from "stream-equal";
+import { expectToThrowAsync } from "./lib/expect-to-throw";
 
 const dataDir = path.join(__dirname, "data", "npm-utils.test");
 
 describe("NpmUtils", function () {
     // these tests are relatively slow (because of reading from fs)
     // therefore we adjust the timeouts
-    this.slow("100ms");
+    this.slow("200ms");
 
     describe("readNpmPackageInfoAsync", function () {
         for (const validpackageTgz of [
@@ -121,21 +122,3 @@ describe("NpmUtils", function () {
         }
     });
 });
-
-async function expectToThrowAsync(
-    fn: () => unknown,
-    condition?: (e: unknown) => boolean,
-    conditionExplanation?: string
-) {
-    try {
-        await Promise.resolve(fn());
-        assert.fail("No error was thrown");
-    } catch (e) {
-        if (condition && !condition(e)) {
-            assert.fail(
-                "Something was thrown, but did not satisfy condition" +
-                    (conditionExplanation ? `: ${conditionExplanation}` : "")
-            );
-        }
-    }
-}

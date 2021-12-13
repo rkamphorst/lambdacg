@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import fse from "lambdacg-updater/fs-exists";
+import fse from "lambdacg-updater/fs-utils";
 import { tmpName } from "tmp";
 import { expect } from "chai";
 import { promisify } from "node:util";

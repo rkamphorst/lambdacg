@@ -1,63 +1,126 @@
 import { AWSError, S3 } from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
-import { URL } from "node:url";
 
-const getS3TarballNamesAsync = async (s3Url: string) => {
-    const { hostname: s3Bucket, pathname } = new URL(s3Url);
+const getBucketAndPrefixOrKeyFromS3Url = (
+    s3Url: string
+): { Bucket: string; PrefixOrKey: string | undefined } => {
+    const s3Regex = /^(S3|s3):\/\/(?<bucket>[^/]+)(\/(?<prefixOrKey>.*))?$/;
 
-    const s3Prefix = pathname ? pathname.substr(1) : undefined;
+    const reResult = s3Regex.exec(s3Url);
+
+    if (!reResult?.groups) {
+        throw new Error(`This is not a s3 URL: ${s3Url}`);
+    }
+
+    const bucket = reResult.groups.bucket;
+    const prefixOrKey =
+        reResult.groups.prefixOrKey?.length === 0
+            ? undefined
+            : reResult.groups.prefixOrKey;
+
+    return {
+        Bucket: bucket,
+        PrefixOrKey: prefixOrKey,
+    };
+};
+
+const getBucketAndPrefixFromS3FolderUrl = (
+    s3Folder: string
+): { Bucket: string; Prefix: string | undefined } => {
+    const result = getBucketAndPrefixOrKeyFromS3Url(s3Folder);
+    if (result.PrefixOrKey && !result.PrefixOrKey.endsWith("/")) {
+        throw new Error(
+            "The s3 URL does not indicate a folder (does not end in '/')"
+        );
+    }
+    return {
+        Bucket: result.Bucket,
+        Prefix: result.PrefixOrKey,
+    };
+};
+
+const getBucketAndKeyFromS3ObjectUrl = (
+    s3Folder: string
+): { Bucket: string; Key: string | undefined } => {
+    const result = getBucketAndPrefixOrKeyFromS3Url(s3Folder);
+    if (!result.PrefixOrKey || result.PrefixOrKey.endsWith("/")) {
+        throw new Error(
+            "The s3 URL does not indicate an object (it is empty or it ends in '/')"
+        );
+    }
+    return {
+        Bucket: result.Bucket,
+        Key: result.PrefixOrKey,
+    };
+};
+
+const getS3NamesAndVersionsAsync = async (
+    s3FolderUrl: string,
+    nameRe: RegExp
+) => {
+    const s3BucketAndPrefix = await getBucketAndPrefixFromS3FolderUrl(
+        s3FolderUrl
+    );
 
     const s3Client = new S3();
-    const result: string[] = [];
-    let marker: string | undefined = undefined;
+    const result: { name: string; version: string | undefined }[] = [];
+    let continuationToken:
+        | { KeyMarker: string | undefined; VersionIdMarker: string | undefined }
+        | undefined = undefined;
 
     do {
-        const listResult: PromiseResult<S3.ListObjectsOutput, AWSError> =
-            await s3Client
-                .listObjects({
-                    Bucket: s3Bucket,
-                    Prefix: s3Prefix,
-                    Delimiter: undefined,
-                    EncodingType: "url",
-                    Marker: marker,
-                    MaxKeys: 25,
-                })
-                .promise();
+        const listVersionsResult: PromiseResult<
+            S3.ListObjectVersionsOutput,
+            AWSError
+        > = await s3Client
+            .listObjectVersions({
+                ...s3BucketAndPrefix,
+                ...continuationToken,
+                MaxKeys: 25,
+            })
+            .promise();
 
-        const listResultContents = listResult.Contents;
+        const listResultContents = listVersionsResult.Versions?.filter(
+            (v) => v.IsLatest
+        );
 
         if (listResultContents) {
-            listResultContents
-                .map(({ Key }) => Key)
-                .filter((name) => {
-                    const filename = s3Prefix
-                        ? name?.substr(s3Prefix.length)
-                        : name;
+            result.push(
+                ...listResultContents
+                    .filter((v) => {
+                        const filename = v.Key?.substr(
+                            s3BucketAndPrefix.Prefix?.length ?? 0
+                        );
 
-                    return (
-                        name &&
-                        filename &&
-                        filename.indexOf("/") <= 0 &&
-                        (name.endsWith(".tgz") ||
-                            name.endsWith(".tar.gz") ||
-                            name.endsWith(".tar"))
-                    );
-                })
-                .forEach((name) => {
-                    if (name) {
-                        result.push(name);
-                    }
-                });
-
-            marker = listResult.IsTruncated
-                ? listResultContents[listResultContents.length - 1].Key
-                : undefined;
-        } else {
-            marker = undefined;
+                        return (
+                            filename &&
+                            filename.length > 0 &&
+                            filename.indexOf("/") < 0 &&
+                            nameRe.test(filename)
+                        );
+                    })
+                    .map((v) => ({
+                        name: v.Key as string,
+                        version: v.VersionId,
+                    }))
+            );
         }
-    } while (marker);
+
+        if (listVersionsResult.IsTruncated) {
+            continuationToken = {
+                KeyMarker: listVersionsResult.NextKeyMarker,
+                VersionIdMarker: listVersionsResult.NextVersionIdMarker,
+            };
+        } else {
+            continuationToken = undefined;
+        }
+    } while (continuationToken);
 
     return result;
 };
 
-export { getS3TarballNamesAsync };
+export {
+    getS3NamesAndVersionsAsync,
+    getBucketAndPrefixFromS3FolderUrl,
+    getBucketAndKeyFromS3ObjectUrl,
+};

@@ -20,4 +20,11 @@ const directoryExistsAsync = async (dirPath: string): Promise<boolean> => {
     return !!(await tryFstatAsync(dirPath))?.isDirectory();
 };
 
-export default { fileExistsAsync, directoryExistsAsync };
+const tryRemoveFileAsync = (filename: string): Promise<boolean> => {
+    return fs
+        .unlink(filename)
+        .then(() => true)
+        .catch(() => false);
+};
+
+export default { fileExistsAsync, directoryExistsAsync, tryRemoveFileAsync };
