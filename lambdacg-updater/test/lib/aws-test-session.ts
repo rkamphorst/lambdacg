@@ -32,7 +32,7 @@ class AwsTestSession {
         this.#inform = inform;
     }
 
-    lambdaClient() {
+    get lambdaClient() {
         return this.#lambdaClient;
     }
 
