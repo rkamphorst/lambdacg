@@ -1,6 +1,6 @@
 import { exec } from "child_process";
-import { PassThrough, Readable } from "stream";
-import { finished as streamFinishedAsync } from "stream/promises";
+import { PassThrough, Readable, finished as streamFinished } from "stream";
+import { promisify } from "node:util";
 import tarStream from "tar-stream";
 import gunzip from "gunzip-maybe";
 import { tmpName } from "tmp";
@@ -15,6 +15,8 @@ type TemporaryNpmTarball = {
     location: string;
     info: NpmPackageInfo;
 };
+
+const streamFinishedAsync = promisify(streamFinished);
 
 function npmInstallAsync(targetDir: string, packages: string[]): Promise<void> {
     if (packages.length == 0) {
