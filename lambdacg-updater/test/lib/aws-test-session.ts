@@ -36,8 +36,8 @@ class AwsTestSession {
         return this.#lambdaClient;
     }
 
-    s3Client() {
-        return this.s3Client;
+    get s3Client() {
+        return this.#s3Client;
     }
 
     hasAwsCredentials() {

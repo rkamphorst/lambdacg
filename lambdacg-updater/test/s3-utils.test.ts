@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
-import { getS3NamesAndVersionsAsync } from "lambdacg-updater/s3-utils";
+import { S3Folder, S3Object } from "lambdacg-updater/s3-utils";
+import { S3 } from "aws-sdk";
 import { expect } from "chai";
 import { AwsTestSession } from "./lib/aws-test-session";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
@@ -25,11 +26,13 @@ describe("S3Utils", async function () {
     this.timeout("15s");
     this.slow("10s");
 
-    before(() => awsTestSession.initializeAsync());
+    before(async () => {
+        await awsTestSession.initializeAsync()
+    });
 
-    after(() => awsTestSession.cleanupAsync());
+    after(async () => await awsTestSession.cleanupAsync());
 
-    describe("getS3NamesAndVersionsAsync", function () {
+    describe("S3Folder", function() {
         const packageFileNames = [
             "tgz.file.tgz",
             "tar.gz.file.tar.gz",
@@ -65,58 +68,67 @@ describe("S3Utils", async function () {
             }
         });
 
-        it(
-            "Should list package tarballs in s3://[s3Bucket]/prefix/",
-            awsTestSession.withAws(async function () {
-                const result = await getS3NamesAndVersionsAsync(
-                    `s3://${s3Bucket}/prefix/`,
-                    /(\.tgz|\.tar.gz|\.tar)$/
-                );
-                expect(result).to.have.deep.members(
-                    packageFileNamesWithPrefix.map((name) => ({
-                        name,
-                        version: "null",
-                    }))
-                );
-            })
-        );
+        describe("constructor", function ()
+        {
+            it(
+                "Should throw when constructed for URL s3://[s3Bucket]/prefix",
+                awsTestSession.withAws(async function () {
+                    const s3Folder =
+                    await expectToThrowAsync(() =>
+                        S3Folder.fromUrl(`s3://${s3Bucket}/prefix`, awsTestSession.s3Client, 10)
+                    );
+                })
+            );
+        });
 
-        it(
-            "Should throw when listing tarballs in s3://[s3Bucket]/prefix",
-            awsTestSession.withAws(async function () {
-                await expectToThrowAsync(() =>
-                    getS3NamesAndVersionsAsync(
-                        `s3://${s3Bucket}/prefix`,
+        describe("listLatestObjectVersionsAsync", function () {
+
+            it(
+                "Should list package tarballs in s3://[s3Bucket]/prefix/",
+                awsTestSession.withAws(async function () {
+                    const s3Folder = S3Folder.fromUrl(`s3://${s3Bucket}/prefix/`, awsTestSession.s3Client, 10);
+
+                    const result = await s3Folder.listLatestObjectVersionsAsync(/(\.tgz|\.tar.gz|\.tar)$/);
+
+                    expect(result).to.not.be.null;
+                    expect(result.length).to.be.equal(packageFileNamesWithPrefix.length);
+                    result.forEach(o => expect(o).to.be.instanceOf(S3Object));
+                    expect(result.map(o => o.name)).to.have.deep.members(packageFileNames);
+                    expect(result.map(o => o.key)).to.have.deep.members(packageFileNamesWithPrefix);
+                })
+            );
+
+            it(
+                "Should list package tarballs in s3://[s3Bucket]/",
+                awsTestSession.withAws(async function () {
+                    const s3Folder = S3Folder.fromUrl(`s3://${s3Bucket}/`, awsTestSession.s3Client, 10);
+                    const result = await s3Folder.listLatestObjectVersionsAsync(
                         /(\.tgz|\.tar.gz|\.tar)$/
-                    )
-                );
-            })
-        );
+                    );
 
-        it(
-            "Should list package tarballs in s3://[s3Bucket]/",
-            awsTestSession.withAws(async function () {
-                const result = await getS3NamesAndVersionsAsync(
-                    `s3://${s3Bucket}/`,
-                    /(\.tgz|\.tar.gz|\.tar)$/
-                );
-                expect(result).to.have.deep.members(
-                    packageFileNames.map((name) => ({ name, version: "null" }))
-                );
-            })
-        );
+                    expect(result).to.not.be.null;
+                    expect(result.length).to.be.equal(packageFileNamesWithPrefix.length);
+                    result.forEach(o => expect(o).to.be.instanceOf(S3Object));
+                    expect(result.map(o => o.name)).to.have.deep.members(packageFileNames);
+                    expect(result.map(o => o.key)).to.have.deep.members(packageFileNames);
+                })
+            );
 
-        it(
-            "Should list package tarballs in s3://[s3Bucket]",
-            awsTestSession.withAws(async function () {
-                const result = await getS3NamesAndVersionsAsync(
-                    `s3://${s3Bucket}`,
-                    /(\.tgz|\.tar.gz|\.tar)$/
-                );
-                expect(result).to.have.deep.members(
-                    packageFileNames.map((name) => ({ name, version: "null" }))
-                );
-            })
-        );
-    });
+            it(
+                "Should list package tarballs in s3://[s3Bucket]",
+                awsTestSession.withAws(async function () {
+                    const s3Folder = S3Folder.fromUrl(`s3://${s3Bucket}`, awsTestSession.s3Client, 10);
+                    const result = await s3Folder.listLatestObjectVersionsAsync(
+                        /(\.tgz|\.tar.gz|\.tar)$/
+                    );
+                    expect(result).to.not.be.null;
+                    expect(result.length).to.be.equal(packageFileNamesWithPrefix.length);
+                    result.forEach(o => expect(o).to.be.instanceOf(S3Object));
+                    expect(result.map(o => o.name)).to.have.deep.members(packageFileNames);
+                    expect(result.map(o => o.key)).to.have.deep.members(packageFileNames);
+                })
+            );
+        });
+    })
+
 });

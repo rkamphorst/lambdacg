@@ -1,5 +1,6 @@
 import { AWSError, S3 } from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
+import {Readable} from "node:stream";
 
 const getBucketAndPrefixOrKeyFromS3Url = (
     s3Url: string
@@ -41,7 +42,7 @@ const getBucketAndPrefixFromS3FolderUrl = (
 
 const getBucketAndKeyFromS3ObjectUrl = (
     s3Folder: string
-): { Bucket: string; Key: string | undefined } => {
+): { Bucket: string; Key: string } => {
     const result = getBucketAndPrefixOrKeyFromS3Url(s3Folder);
     if (!result.PrefixOrKey || result.PrefixOrKey.endsWith("/")) {
         throw new Error(
@@ -50,77 +51,142 @@ const getBucketAndKeyFromS3ObjectUrl = (
     }
     return {
         Bucket: result.Bucket,
-        Key: result.PrefixOrKey,
+        Key: result.PrefixOrKey as string,
     };
 };
 
-const getS3NamesAndVersionsAsync = async (
-    s3FolderUrl: string,
-    nameRe: RegExp
-) => {
-    const s3BucketAndPrefix = await getBucketAndPrefixFromS3FolderUrl(
-        s3FolderUrl
-    );
+class S3Folder {
 
-    const s3Client = new S3();
-    const result: { name: string; version: string | undefined }[] = [];
-    let continuationToken:
-        | { KeyMarker: string | undefined; VersionIdMarker: string | undefined }
-        | undefined = undefined;
+    static fromUrl(s3FolderUrl:string, s3Client?:S3, maxKeysPerInvocation?:number):S3Folder {
+        const bucketAndPrefix = getBucketAndPrefixFromS3FolderUrl(s3FolderUrl);
+        return new S3Folder(bucketAndPrefix, s3Client ?? new S3(), maxKeysPerInvocation ?? 1000);
+    }
 
-    do {
-        const listVersionsResult: PromiseResult<
-            S3.ListObjectVersionsOutput,
-            AWSError
-        > = await s3Client
-            .listObjectVersions({
-                ...s3BucketAndPrefix,
-                ...continuationToken,
-                MaxKeys: 25,
-            })
-            .promise();
+    #bucketAndPrefix:{Bucket:string,Prefix:string|undefined};
+    #maxKeysPerInvocation:number;
+    #s3Client:S3;
 
-        const listResultContents = listVersionsResult.Versions?.filter(
-            (v) => v.IsLatest
-        );
+    constructor (bucketAndPrefix:{Bucket:string,Prefix:string|undefined}, s3Client:S3, maxKeysPerInvocation:number) {
+        this.#bucketAndPrefix = bucketAndPrefix;
+        this.#maxKeysPerInvocation = maxKeysPerInvocation;
+        this.#s3Client = s3Client;
+    }
 
-        if (listResultContents) {
-            result.push(
-                ...listResultContents
-                    .filter((v) => {
-                        const filename = v.Key?.substr(
-                            s3BucketAndPrefix.Prefix?.length ?? 0
-                        );
+    async listLatestObjectVersionsAsync (nameRe: RegExp):Promise<S3Object[]> {
+        const result: S3Object[] = [];
+        let continuationToken:
+            | { KeyMarker: string | undefined; VersionIdMarker: string | undefined }
+            | undefined = undefined;
 
-                        return (
-                            filename &&
-                            filename.length > 0 &&
-                            filename.indexOf("/") < 0 &&
-                            nameRe.test(filename)
-                        );
-                    })
-                    .map((v) => ({
-                        name: v.Key as string,
-                        version: v.VersionId,
-                    }))
+        do {
+            const listVersionsResult: PromiseResult<
+                S3.ListObjectVersionsOutput,
+                AWSError
+            > = await this.#s3Client
+                .listObjectVersions({
+                    ...this.#bucketAndPrefix,
+                    ...continuationToken,
+                    MaxKeys: this.#maxKeysPerInvocation,
+                })
+                .promise();
+
+            const listResultContents = listVersionsResult.Versions?.filter(
+                (v) => v.IsLatest
             );
-        }
 
-        if (listVersionsResult.IsTruncated) {
-            continuationToken = {
-                KeyMarker: listVersionsResult.NextKeyMarker,
-                VersionIdMarker: listVersionsResult.NextVersionIdMarker,
-            };
-        } else {
-            continuationToken = undefined;
-        }
-    } while (continuationToken);
+            if (listResultContents) {
+                result.push(
+                    ...listResultContents
+                        .filter((v) => {
+                            const filename = v.Key?.substr(
+                                this.#bucketAndPrefix.Prefix?.length ?? 0
+                            );
 
-    return result;
-};
+                            return (
+                                filename &&
+                                filename.length > 0 &&
+                                filename.indexOf("/") < 0 &&
+                                nameRe.test(filename)
+                            );
+                        })
+                        .map((v) => new S3Object({
+                            Bucket:this.#bucketAndPrefix.Bucket,
+                            Key: v.Key as string,
+                            VersionId: v.VersionId as string
+                        }, this.#s3Client))
+                );
+            }
+
+            if (listVersionsResult.IsTruncated) {
+                continuationToken = {
+                    KeyMarker: listVersionsResult.NextKeyMarker,
+                    VersionIdMarker: listVersionsResult.NextVersionIdMarker,
+                };
+            } else {
+                continuationToken = undefined;
+            }
+        } while (continuationToken);
+
+        return result;
+    };
+}
+
+class S3Object {
+
+    static fromUrlAndVersion(s3ObjectUrl:string, version:string, s3Client?:S3):S3Object {
+        const bucketKeyVersion = {
+            ...getBucketAndKeyFromS3ObjectUrl(s3ObjectUrl),
+            VersionId:version
+        };
+        return new S3Object(bucketKeyVersion, s3Client ?? new S3());
+    }
+
+    #bucketKeyVersion:{Bucket:string,Key:string,VersionId:string};
+    #s3Client:S3;
+
+    get key():string {
+        return this.#bucketKeyVersion.Key;
+    }
+
+    get name():string {
+        return this.#bucketKeyVersion.Key.substring(this.#bucketKeyVersion.Key.lastIndexOf('/')+1);
+    }
+
+    get version():string {
+        return this.#bucketKeyVersion.VersionId;
+    }
+
+    constructor(bucketKeyVersion:{Bucket:string,Key:string,VersionId:string}, s3Client:S3) {
+        this.#bucketKeyVersion = bucketKeyVersion;
+        this.#s3Client = s3Client;
+    }
+
+    async getTagsAsync ():Promise<{key:string,value:string}[]> {
+
+        const tags = await this.#s3Client.getObjectTagging({
+            ...this.#bucketKeyVersion
+        }).promise();
+
+        return tags.TagSet.map(t => ({key: t.Key, value:t.Value}));
+    }
+
+    async setTagsAsync (tags:{key:string; value:string}[]):Promise<void> {
+        await this.#s3Client.putObjectTagging({
+            ...this.#bucketKeyVersion,
+            Tagging: {
+                TagSet:tags.map(t => ({Key:t.key,Value:t.value}))
+            }
+        }).promise();
+    }
+
+    getDownloadStream(): Readable {
+        return this.#s3Client.getObject({...this.#bucketKeyVersion}).createReadStream();
+    }
+}
 
 export {
-    getS3NamesAndVersionsAsync,
+    S3Folder,
+    S3Object,
     getBucketAndPrefixFromS3FolderUrl,
     getBucketAndKeyFromS3ObjectUrl,
 };
