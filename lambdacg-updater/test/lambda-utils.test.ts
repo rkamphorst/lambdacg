@@ -70,8 +70,7 @@ describe("LambdaUtils", async function () {
 
                 await awsTestSession.awaitLambdaReadiness(lambdaFunction);
 
-                const response = await awsTestSession
-                    .lambdaClient
+                const response = await awsTestSession.lambdaClient
                     .invoke({ FunctionName: lambdaFunction })
                     .promise();
 
