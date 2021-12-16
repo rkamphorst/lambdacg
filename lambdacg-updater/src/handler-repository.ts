@@ -1,33 +1,36 @@
 import { Readable } from "stream";
 import { HandlerRepositoryInterface } from "./updater-contract";
-import { S3Folder, S3Object } from "./s3-utils";
+import {
+    FolderInterface,
+    FolderItemInterface,
+} from "./handler-repository-contract";
 
-class S3HandlerRepository implements HandlerRepositoryInterface {
-    #s3Folder: S3Folder;
-    #s3ObjectsUpToDate:
+class HandlerRepository implements HandlerRepositoryInterface {
+    #folder: FolderInterface;
+    #itemsToUpdate:
         | {
-              object: S3Object;
+              object: FolderItemInterface;
               tags: { key: string; value: string }[];
               isUpToDate: boolean;
           }[]
         | undefined = undefined;
     #updatedTagKey: string;
 
-    constructor(s3Folder: S3Folder, updatedTagKey: string) {
-        this.#s3Folder = s3Folder;
+    constructor(folder: FolderInterface, updatedTagKey: string) {
+        this.#folder = folder;
         this.#updatedTagKey = updatedTagKey;
     }
 
     async initializeWithLatestVersionsAsync(): Promise<void> {
-        this.#s3ObjectsUpToDate = await Promise.all(
+        this.#itemsToUpdate = await Promise.all(
             (
-                await this.#s3Folder.listLatestObjectVersionsAsync(
+                await this.#folder.listLatestItemVersionsAsync(
                     /(\.tar.gz|\.tgz)$/
                 )
-            ).map(async (s3Object) => {
-                const tags = await s3Object.getTagsAsync();
+            ).map(async (folderItem) => {
+                const tags = await folderItem.getTagsAsync();
                 return {
-                    object: s3Object,
+                    object: folderItem,
                     tags: tags,
                     isUpToDate:
                         tags.findIndex((t) => t.key === this.#updatedTagKey) >=
@@ -38,20 +41,20 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
     }
 
     hasModulesToUpdate(): boolean {
-        if (this.#s3ObjectsUpToDate === undefined) {
+        if (this.#itemsToUpdate === undefined) {
             throw new Error("You have to initialize first");
         }
-        return this.#s3ObjectsUpToDate.findIndex((x) => !x.isUpToDate) >= 0;
+        return this.#itemsToUpdate.findIndex((x) => !x.isUpToDate) >= 0;
     }
 
     getHandlerTarballStreamsAsync(): Promise<
         { tarballName: string; stream: Readable }[]
     > {
-        if (this.#s3ObjectsUpToDate === undefined) {
+        if (this.#itemsToUpdate === undefined) {
             throw new Error("You have to initialize first");
         }
         return Promise.resolve(
-            this.#s3ObjectsUpToDate.map((o) => ({
+            this.#itemsToUpdate.map((o) => ({
                 tarballName: o.object.name,
                 stream: o.object.getDownloadStream(),
             }))
@@ -59,12 +62,12 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
     }
 
     async markUpdatesAsync(updateMarker: string): Promise<void> {
-        if (this.#s3ObjectsUpToDate === undefined) {
+        if (this.#itemsToUpdate === undefined) {
             throw new Error("You have to initialize first");
         }
 
         await Promise.all(
-            this.#s3ObjectsUpToDate
+            this.#itemsToUpdate
                 .filter((x) => !x.isUpToDate)
                 .map((x) =>
                     x.object.setTagsAsync(
@@ -77,4 +80,4 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
     }
 }
 
-export { S3HandlerRepository };
+export { HandlerRepository };
