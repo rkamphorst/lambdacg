@@ -12,13 +12,15 @@ interface HandlerRepositoryInterface {
     markUpdatesAsync(updateMarker: string): Promise<void>;
 }
 
-interface ResolverStagingInterface {
-    addHandlerFromTarballStreamAsync(
+interface ResolverPackageInterface {
+    addHandlerFromTarballStream(
         tarballName: string,
-        stream: Readable
-    ): Promise<void>;
+        tarballStream: Readable
+    ): void;
 
-    createDeploymentZipStreamAsync(): Promise<Readable>;
+    createLambdaCodeZipStream(): Readable;
+
+    cleanupAsync(): Promise<void>;
 }
 
 interface UpdaterInterface {
@@ -27,6 +29,6 @@ interface UpdaterInterface {
 
 export {
     HandlerRepositoryInterface,
-    ResolverStagingInterface,
+    ResolverPackageInterface,
     UpdaterInterface,
 };
