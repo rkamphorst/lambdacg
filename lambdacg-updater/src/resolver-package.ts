@@ -105,6 +105,7 @@ class ResolverPackage implements ResolverPackageInterface {
 
         // add package directory
         archive.directory(packageDirectory, false);
+        archive.finalize();
 
         // when zip is completed, remove package dir.
         // do this synchronously for now because nobody is waiting anyway.
