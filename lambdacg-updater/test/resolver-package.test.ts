@@ -12,7 +12,7 @@ import unzipper from "unzipper";
 
 const streamFinishedAsync = promisify(streamFinised);
 
-const debugTestCallback: ((message: string) => void) | undefined = undefined; //message => console.log(message);
+let debugTestCallback: ((message: string) => void) | undefined = undefined;
 
 const debugTest: (message: string) => void = (message) => {
     if (debugTestCallback) {
