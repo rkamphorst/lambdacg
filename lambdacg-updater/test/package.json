@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "test": "mocha -r 'ts-node/register' **/*.test.ts",
+    "single-test": "mocha -r 'ts-node/register' ",
     "test-watch": "mocha --r ts-node/register --extensions ts,tsx --watch --watch-files '../src' --watch-files . '**/*.test.ts'"
   },
   "devDependencies": {
@@ -15,6 +16,7 @@
     "@types/mocha": "^9.0.0",
     "@types/sinon": "^10.0.6",
     "@types/tmp": "^0.2.2",
+    "@types/unzipper": "^0.10.4",
     "@types/uuid": "^8.3.3",
     "aws-sdk": "^2.1043.0",
     "chai": "^4.3.4",
@@ -23,6 +25,7 @@
     "stream-equal": "^2.0.1",
     "tmp": "^0.2.1",
     "ts-node": "^10.4.0",
+    "unzipper": "^0.10.11",
     "uuid": "^8.3.2"
   }
 }

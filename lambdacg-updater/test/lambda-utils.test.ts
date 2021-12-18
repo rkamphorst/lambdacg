@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { AwsTestSession } from "./lib/aws-test-session";
 import { updateLambdaFunctionWithDirectoryAsync } from "lambdacg-updater/lambda-utils";
+import {createTemporaryDirAsync} from "./lib/create-temporary-dir";
 
 let debugTestCallback: ((message: string) => void) | undefined = undefined;
 
@@ -52,7 +53,7 @@ describe("LambdaUtils", async function () {
         it(
             "Should successfully update a lambda function",
             awsTestSession.withAws(async function () {
-                const tmpdir = await fs.mkdtemp("lambdacgtest-updatelambda-");
+                const tmpdir = await createTemporaryDirAsync();
                 await fs.writeFile(
                     path.join(tmpdir, "index.js"),
                     'exports.handler = async function() { return { result: "updated" }; };\n'

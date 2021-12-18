@@ -3,6 +3,8 @@ import fsu from "lambdacg-updater/fs-utils";
 import { tmpName } from "tmp";
 import { expect } from "chai";
 import { promisify } from "node:util";
+import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
+
 
 const tmpNameAsync = promisify(tmpName);
 
@@ -21,7 +23,7 @@ describe("FsUtils", () => {
             }
         });
         it("Should return false if it exists but is not a file", async () => {
-            const dirname = await fs.mkdtemp("lambdacg-updater-test-");
+            const dirname = await createTemporaryDirAsync();
 
             try {
                 const result = await fsu.fileExistsAsync(dirname);
@@ -41,7 +43,7 @@ describe("FsUtils", () => {
 
     describe("directoryExistsAsync", function () {
         it("Should return true if it exists and is a directory", async () => {
-            const dirname = await fs.mkdtemp("lambdacg-updater-test-");
+            const dirname = await createTemporaryDirAsync();
             try {
                 const result = await fsu.directoryExistsAsync(dirname);
 
@@ -84,7 +86,7 @@ describe("FsUtils", () => {
         });
 
         it("Should return false if it fails", async function () {
-            const dirname = await fs.mkdtemp("lambdacg-updater-test-");
+            const dirname = await createTemporaryDirAsync();
             try {
                 const result = await fsu.tryRemoveFileAsync(dirname);
 

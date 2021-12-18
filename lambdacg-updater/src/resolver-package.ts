@@ -11,6 +11,7 @@ import {
     TemporaryNpmTarball,
 } from "./npm-utils";
 import archiver from "archiver";
+import os from "node:os";
 
 class ResolverPackage implements ResolverPackageInterface {
     #directoryPromise: Promise<string> | undefined;
@@ -52,7 +53,7 @@ class ResolverPackage implements ResolverPackageInterface {
         tarballStream: Readable
     ): Promise<TemporaryNpmTarball> {
         if (!this.#directoryPromise) {
-            this.#directoryPromise = fs.mkdtemp("lambdacg-updater-tmp-");
+            this.#directoryPromise = fs.mkdtemp(path.join(os.tmpdir(), "lambdacg-updater-tmp-"));
         }
         const tmpdir = await this.#directoryPromise;
 
@@ -70,49 +71,55 @@ class ResolverPackage implements ResolverPackageInterface {
     }
 
     async #packageAndZipToStreamAsync(writeStream: Writable) {
-        // create a package directory and await the "add module" promises;
-        // we can do this in parallel
-        const [packageDirectory, tarballNamesAndFiles] = await Promise.all([
-            unpackNpmPackageContentsInTarball(this.#getPackageAssetStream()),
-            Promise.all(
-                this.#addModulePromises.map(async (p) => ({
-                    tarballName: p.tarballName,
-                    tarballInfo: await p.promise,
-                }))
-            ),
-        ]);
+        try {
+            // create a package directory and await the "add module" promises;
+            // we can do this in parallel
+            const [packageDirectory, tarballNamesAndFiles] = await Promise.all([
+                unpackNpmPackageContentsInTarball(this.#getPackageAssetStream()),
+                Promise.all(
+                    this.#addModulePromises.map(async (p) => ({
+                        tarballName: p.tarballName,
+                        tarballInfo: await p.promise,
+                    }))
+                ),
+            ]);
 
-        // install the fetched modules, and write the handlerFactories.json file.
-        // again, this can be done in parallel
-        await Promise.all([
-            npmInstallAsync(
-                packageDirectory,
-                tarballNamesAndFiles.map(
-                    ({ tarballInfo }) => tarballInfo.location
-                )
-            ),
-            fs.writeFile(
-                path.join(packageDirectory, "handlerFactories.json"),
-                JSON.stringify(
-                    tarballNamesAndFiles.map((i) => i.tarballInfo.info["name"])
-                )
-            ),
-        ]);
+            // install the fetched modules, and write the handlerFactories.json file.
+            // again, this can be done in parallel
+            await Promise.all([
+                npmInstallAsync(
+                    packageDirectory,
+                    tarballNamesAndFiles.map(
+                        ({ tarballInfo }) => tarballInfo.location
+                    )
+                ),
+                fs.writeFile(
+                    path.join(packageDirectory, "handlerFactories.json"),
+                    JSON.stringify(
+                        tarballNamesAndFiles.map((i) => i.tarballInfo.info["name"])
+                    )
+                ),
+            ]);
 
-        // archive and pipe to the write stream
-        const archive = archiver("zip");
-        archive.pipe(writeStream);
+            // archive and pipe to the write stream
+            const archive = archiver("zip");
+            archive.pipe(writeStream);
 
-        // add package directory
-        archive.directory(packageDirectory, false);
-        archive.finalize();
+            // when zip is completed, remove package dir.
+            // do this synchronously for now because nobody is waiting anyway.
+            // don't know what happens if we do it async and don't await it...
+            archive.on("close", () => {
+                rmSync(packageDirectory, { force: true, recursive: true });
+            });
 
-        // when zip is completed, remove package dir.
-        // do this synchronously for now because nobody is waiting anyway.
-        // don't know what happens if we do it async and don't await it...
-        archive.on("close", () => {
-            rmSync(packageDirectory, { force: true, recursive: true });
-        });
+            // add package directory
+            archive.directory(packageDirectory, false);
+
+            await archive.finalize();
+
+        } catch (err) {
+            writeStream.destroy(err instanceof Error ? err : new Error(`${err}`));
+        }
     }
 
     async cleanupAsync(): Promise<void> {
