@@ -4,22 +4,15 @@ import path from "node:path";
 import { AwsTestSession } from "./lib/aws-test-session";
 import { updateLambdaFunctionWithDirectoryAsync } from "lambdacg-updater/lambda-utils";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
-
-let debugTestCallback: ((message: string) => void) | undefined = undefined;
-
-const debugTest: (message: string) => void = (message) => {
-    if (debugTestCallback) {
-        debugTestCallback(message);
-    }
-};
+import { getLogger } from "./lib/logger";
+import { describeObject } from "./lib/mocha-utils";
 
 const dataDir = path.join(__dirname, "data", "lambda-utils.test");
+const logger = getLogger();
 
 describe("LambdaUtils", async function () {
-    debugTestCallback = undefined;
-
     const awsTestSession = new AwsTestSession(
-        debugTest,
+        (m) => logger.log(m),
         "eu-west-1",
         "lambdacgtest-"
     );
@@ -36,7 +29,7 @@ describe("LambdaUtils", async function () {
     let lambdaFunction: string;
     let s3Bucket: string;
 
-    describe("updateLambdaFunctionWithDirectoryAsync", function () {
+    describeObject({ updateLambdaFunctionWithDirectoryAsync }, function () {
         before(async () => {
             if (awsTestSession.hasAwsCredentials()) {
                 const zipFileContents = await fs.readFile(

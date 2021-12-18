@@ -4,6 +4,7 @@ import {
 } from "lambdacg-updater/s3-utils";
 import { expect } from "chai";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
+import { describeObject } from "./lib/mocha-utils";
 
 describe("S3Utils", async function () {
     // these tests are over the network and can be quite slow.
@@ -12,7 +13,7 @@ describe("S3Utils", async function () {
     this.slow("10s");
 
     describe("S3Utils", function () {
-        describe("getBucketAndPrefixFromS3FolderUrl", function () {
+        describeObject({ getBucketAndPrefixFromS3FolderUrl }, function () {
             it("Should throw for URL s3://[s3Bucket]/prefix", async function () {
                 await expectToThrowAsync(() =>
                     getBucketAndPrefixFromS3FolderUrl(`s3://s3-bucket/prefix`)
@@ -30,7 +31,7 @@ describe("S3Utils", async function () {
             });
         });
 
-        describe("getBucketAndKeyFromS3ObjectUrl", function () {
+        describeObject({ getBucketAndKeyFromS3ObjectUrl }, function () {
             it("Should throw for URL s3://[s3Bucket]/object/key/", async function () {
                 await expectToThrowAsync(() =>
                     getBucketAndKeyFromS3ObjectUrl(`s3://s3-bucket/object/key/`)

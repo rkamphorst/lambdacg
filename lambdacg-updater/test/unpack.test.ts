@@ -3,19 +3,14 @@ import { createReadStream } from "node:fs";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { expect } from "chai";
-
-let debugTestCallback: ((message: string) => void) | undefined = undefined;
-
-const debugTest: (message: string) => void = (message) => {
-    if (debugTestCallback) {
-        debugTestCallback(message);
-    }
-};
+import { describeObject } from "./lib/mocha-utils";
+import { getLogger } from "./lib/logger";
 
 const dataDir = path.join(__dirname, "data", "unpack.test");
+const logger = getLogger();
+
 describe("Unpack", () => {
-    debugTestCallback = undefined;
-    describe("unpackNpmPackageContentsInTarball", () => {
+    describeObject({ unpackNpmPackageContentsInTarball }, () => {
         it("Should unpack package to a tmp dir", async () => {
             const readStream = createReadStream(
                 path.join(dataDir, "biggerpackage.tgz")
@@ -23,7 +18,7 @@ describe("Unpack", () => {
             const unpackDir = await unpackNpmPackageContentsInTarball(
                 readStream
             );
-            debugTest(`Unpacked in dir ${unpackDir}`);
+            logger.log(`Unpacked in dir ${unpackDir}`);
 
             try {
                 const isDirectory = (await fs.stat(unpackDir)).isDirectory();
@@ -52,7 +47,7 @@ describe("Unpack", () => {
                 expect(libjsExists).to.be.true;
             } finally {
                 await fs.rm(unpackDir, { recursive: true, force: true });
-                debugTest(`Removed directory with contents: ${unpackDir}`);
+                logger.log(`Removed directory with contents: ${unpackDir}`);
             }
         });
     });

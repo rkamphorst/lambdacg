@@ -8,6 +8,7 @@ import { expect } from "chai";
 import { PassThrough } from "stream";
 import streamEqualAsync from "stream-equal";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
+import { describeObject } from "./lib/mocha-utils";
 
 const dataDir = path.join(__dirname, "data", "npm-utils.test");
 
@@ -16,7 +17,7 @@ describe("NpmUtils", function () {
     // therefore we adjust the timeouts
     this.slow("200ms");
 
-    describe("readNpmPackageInfoAsync", function () {
+    describeObject({ readNpmPackageInfoAsync }, function () {
         for (const validpackageTgz of [
             "validpackage1.tgz",
             "validpackage.tgz",
@@ -79,7 +80,7 @@ describe("NpmUtils", function () {
         });
     });
 
-    describe("storeTemporaryNpmTarballAsync", function () {
+    describeObject({ storeTemporaryNpmTarballAsync }, function () {
         for (const validpackageTgz of [
             "validpackage1.tgz",
             "validpackage.tgz",

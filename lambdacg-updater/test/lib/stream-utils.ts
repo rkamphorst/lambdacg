@@ -1,19 +1,35 @@
-import { Writable } from "node:stream";
+import { Writable, Readable } from "node:stream";
 
 const isWriteStreamFinishedAsync = (writeStream: Writable) => {
     return new Promise<void>((resolve, reject) => {
         if (writeStream.writableFinished) {
             resolve();
-        } else {
-            writeStream.on("close", (err: unknown) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
+            return;
         }
+        writeStream.on("close", (err: unknown) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
     });
 };
 
-export { isWriteStreamFinishedAsync };
+const isReadStreamFinishedAsync = (readStream: Readable) => {
+    return new Promise<void>((resolve, reject) => {
+        if (readStream.readableEnded) {
+            resolve();
+            return;
+        }
+        readStream.on("close", (err: unknown) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
+export { isWriteStreamFinishedAsync, isReadStreamFinishedAsync };

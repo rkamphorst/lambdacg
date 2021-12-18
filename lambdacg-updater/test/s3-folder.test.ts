@@ -3,6 +3,7 @@ import { S3Folder, S3Object } from "lambdacg-updater/s3-folder";
 import { expect } from "chai";
 import { AwsTestSession } from "./lib/aws-test-session";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
+import { describeClass, describeMember } from "./lib/mocha-utils";
 
 let debugTestCallback: ((message: string) => void) | undefined = undefined;
 
@@ -61,7 +62,7 @@ describe("S3Folder", async function () {
 
     after(async () => await awsTestSession.cleanupAsync());
 
-    describe("S3Folder", function () {
+    describeClass({ S3Folder }, function () {
         describe("fromUrl", function () {
             it(
                 "Should throw for URL s3://[s3Bucket]/prefix",
@@ -89,7 +90,7 @@ describe("S3Folder", async function () {
             );
         });
 
-        describe("listLatestItemVersionsAsync", function () {
+        describeMember<S3Folder>("listLatestItemVersionsAsync", function () {
             it(
                 "Should list package tarballs in s3://[s3Bucket]/prefix/",
                 awsTestSession.withAws(async function () {
@@ -170,7 +171,7 @@ describe("S3Folder", async function () {
         });
     });
 
-    describe("S3Object", function () {
+    describeClass({ S3Object }, function () {
         describe("fromUrlAndVersion", function () {
             it(
                 "Should throw for URL s3://[s3Bucket]/object/key/",
@@ -198,7 +199,7 @@ describe("S3Folder", async function () {
             );
         });
 
-        describe("(set|get)TagsAsync", function () {
+        describeMember<S3Object>("setTagsAsync", function () {
             it(
                 "Should get the same tags as the ones set",
                 awsTestSession.withAws(async function () {
@@ -257,7 +258,7 @@ describe("S3Folder", async function () {
             );
         });
 
-        describe("getDownloadStream", function () {
+        describeMember<S3Object>("getDownloadStream", function () {
             it(
                 "Should correctly download the contents of an object",
                 awsTestSession.withAws(async function () {

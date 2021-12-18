@@ -8,14 +8,9 @@ import { expect } from "chai";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import unzipper from "unzipper";
 import { isWriteStreamFinishedAsync } from "./lib/stream-utils";
+import { getLogger } from "./lib/logger";
 
-const debugTestCallback: ((message: string) => void) | undefined = undefined;
-
-const debugTest: (message: string) => void = (message) => {
-    if (debugTestCallback) {
-        debugTestCallback(message);
-    }
-};
+const logger = getLogger();
 
 describe("ResolverPackage", function () {
     const getMyPackageStream = () =>
@@ -47,16 +42,16 @@ describe("ResolverPackage", function () {
 
         beforeEach(async () => {
             tmpDir = await createTemporaryDirAsync();
-            debugTest(`Created tmp directory "${tmpDir}"`);
+            logger.log(`Created tmp directory "${tmpDir}"`);
         });
 
         afterEach(async () => {
             if (tmpDir) {
                 try {
                     await fs.rm(tmpDir, { force: true, recursive: true });
-                    debugTest(`Deleted tmp directory "${tmpDir}"`);
+                    logger.log(`Deleted tmp directory "${tmpDir}"`);
                 } catch (err) {
-                    debugTest(`Deleting tmp directory "${tmpDir}" failed.`);
+                    logger.log(`Deleting tmp directory "${tmpDir}" failed.`);
                 }
             }
             tmpDir = undefined;
@@ -66,7 +61,6 @@ describe("ResolverPackage", function () {
             "createLambdaCodeZipStream",
             function () {
                 it("Should create a correct zip file if no modules are added", async function () {
-                    debugTest("TMP DIR IS " + tmpDir);
                     const sut = new ResolverPackage(getMyPackageStream);
 
                     const writeStream = unzipper.Extract({
