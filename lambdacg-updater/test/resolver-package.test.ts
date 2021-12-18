@@ -1,18 +1,15 @@
 import { ResolverPackage } from "lambdacg-updater/resolver-package";
 import { describeClass, describeMember } from "./lib/mocha-utils";
-import { createReadStream, createWriteStream } from "node:fs";
-import { finished as streamFinised } from "node:stream";
-import { promisify } from "node:util";
+import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import fsu from "lambdacg-updater/fs-utils";
 import { expect } from "chai";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import unzipper from "unzipper";
+import { isWriteStreamFinishedAsync } from "./lib/stream-utils";
 
-const streamFinishedAsync = promisify(streamFinised);
-
-let debugTestCallback: ((message: string) => void) | undefined = undefined;
+const debugTestCallback: ((message: string) => void) | undefined = undefined;
 
 const debugTest: (message: string) => void = (message) => {
     if (debugTestCallback) {
@@ -40,7 +37,6 @@ describe("ResolverPackage", function () {
         this.slow("7s");
 
         let tmpDir: string | undefined = undefined;
-        const codeZipPath = () => path.join(`${tmpDir}`, "code.zip");
         const codeUnpackPath = () => path.join(`${tmpDir}`, "unpack");
         const myPackageIndexPath = () =>
             path.join(codeUnpackPath(), "index.js");
@@ -73,33 +69,12 @@ describe("ResolverPackage", function () {
                     debugTest("TMP DIR IS " + tmpDir);
                     const sut = new ResolverPackage(getMyPackageStream);
 
-                    const toStream = createWriteStream(codeZipPath());
-                    sut.createLambdaCodeZipStream().pipe(toStream);
-
-                    await streamFinishedAsync(toStream);
-
-                    expect(await fsu.fileExistsAsync(codeZipPath())).to.be.true;
-
-                    const readStream = createReadStream(codeZipPath());
                     const writeStream = unzipper.Extract({
                         path: codeUnpackPath(),
                     });
-                    readStream.pipe(writeStream);
+                    sut.createLambdaCodeZipStream().pipe(writeStream);
 
-                    const promise = new Promise<void>((resolve, reject) => {
-                        if (writeStream.writableFinished) {
-                            resolve();
-                        } else {
-                            writeStream.on("close", (err: unknown) => {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve();
-                                }
-                            });
-                        }
-                    });
-                    await promise;
+                    await isWriteStreamFinishedAsync(writeStream);
 
                     expect(
                         await fsu.fileExistsAsync(myPackageIndexPath()),
@@ -135,35 +110,12 @@ describe("ResolverPackage", function () {
                         getModuleStream("his-module.tgz")
                     );
 
-                    const toStream = createWriteStream(codeZipPath());
-                    sut.createLambdaCodeZipStream().pipe(toStream);
-
-                    await streamFinishedAsync(toStream);
-
-                    expect(await fsu.fileExistsAsync(codeZipPath())).to.be.true;
-
-                    const readStream = createReadStream(codeZipPath());
                     const writeStream = unzipper.Extract({
                         path: codeUnpackPath(),
                     });
+                    sut.createLambdaCodeZipStream().pipe(writeStream);
 
-                    readStream.pipe(writeStream);
-
-                    const promise = new Promise<void>((resolve, reject) => {
-                        if (writeStream.writableFinished) {
-                            resolve();
-                        } else {
-                            writeStream.on("close", (err: unknown) => {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve();
-                                }
-                            });
-                        }
-                    });
-                    await promise;
-                    //await streamFinishedAsync(writeStream);
+                    await isWriteStreamFinishedAsync(writeStream);
 
                     expect(
                         await fsu.fileExistsAsync(myPackageIndexPath()),
