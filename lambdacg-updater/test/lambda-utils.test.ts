@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { AwsTestSession } from "./lib/aws-test-session";
 import { updateLambdaFunctionWithDirectoryAsync } from "lambdacg-updater/lambda-utils";
-import {createTemporaryDirAsync} from "./lib/create-temporary-dir";
+import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 
 let debugTestCallback: ((message: string) => void) | undefined = undefined;
 

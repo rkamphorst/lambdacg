@@ -5,7 +5,6 @@ import { expect } from "chai";
 import { promisify } from "node:util";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 
-
 const tmpNameAsync = promisify(tmpName);
 
 describe("FsUtils", () => {

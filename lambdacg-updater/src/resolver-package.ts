@@ -53,7 +53,9 @@ class ResolverPackage implements ResolverPackageInterface {
         tarballStream: Readable
     ): Promise<TemporaryNpmTarball> {
         if (!this.#directoryPromise) {
-            this.#directoryPromise = fs.mkdtemp(path.join(os.tmpdir(), "lambdacg-updater-tmp-"));
+            this.#directoryPromise = fs.mkdtemp(
+                path.join(os.tmpdir(), "lambdacg-updater-tmp-")
+            );
         }
         const tmpdir = await this.#directoryPromise;
 
@@ -75,7 +77,9 @@ class ResolverPackage implements ResolverPackageInterface {
             // create a package directory and await the "add module" promises;
             // we can do this in parallel
             const [packageDirectory, tarballNamesAndFiles] = await Promise.all([
-                unpackNpmPackageContentsInTarball(this.#getPackageAssetStream()),
+                unpackNpmPackageContentsInTarball(
+                    this.#getPackageAssetStream()
+                ),
                 Promise.all(
                     this.#addModulePromises.map(async (p) => ({
                         tarballName: p.tarballName,
@@ -96,7 +100,9 @@ class ResolverPackage implements ResolverPackageInterface {
                 fs.writeFile(
                     path.join(packageDirectory, "handlerFactories.json"),
                     JSON.stringify(
-                        tarballNamesAndFiles.map((i) => i.tarballInfo.info["name"])
+                        tarballNamesAndFiles.map(
+                            (i) => i.tarballInfo.info["name"]
+                        )
                     )
                 ),
             ]);
@@ -116,9 +122,10 @@ class ResolverPackage implements ResolverPackageInterface {
             archive.directory(packageDirectory, false);
 
             await archive.finalize();
-
         } catch (err) {
-            writeStream.destroy(err instanceof Error ? err : new Error(`${err}`));
+            writeStream.destroy(
+                err instanceof Error ? err : new Error(`${err}`)
+            );
         }
     }
 

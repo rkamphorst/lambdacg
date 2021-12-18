@@ -1,18 +1,18 @@
-import {ResolverPackage} from "lambdacg-updater/resolver-package";
-import {describeClass,describeMember} from "./lib/mocha-utils";
-import {createReadStream, createWriteStream} from "node:fs";
-import {finished as streamFinised } from "node:stream";
-import {promisify} from "node:util";
+import { ResolverPackage } from "lambdacg-updater/resolver-package";
+import { describeClass, describeMember } from "./lib/mocha-utils";
+import { createReadStream, createWriteStream } from "node:fs";
+import { finished as streamFinised } from "node:stream";
+import { promisify } from "node:util";
 import fs from "node:fs/promises";
 import path from "node:path";
 import fsu from "lambdacg-updater/fs-utils";
-import {expect} from "chai";
+import { expect } from "chai";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import unzipper from "unzipper";
 
 const streamFinishedAsync = promisify(streamFinised);
 
-let debugTestCallback: ((message: string) => void) | undefined = undefined; //message => console.log(message);
+const debugTestCallback: ((message: string) => void) | undefined = undefined; //message => console.log(message);
 
 const debugTest: (message: string) => void = (message) => {
     if (debugTestCallback) {
@@ -20,24 +20,34 @@ const debugTest: (message: string) => void = (message) => {
     }
 };
 
-describe("ResolverPackage", function() {
+describe("ResolverPackage", function () {
+    const getMyPackageStream = () =>
+        createReadStream(
+            path.join(
+                __dirname,
+                "data",
+                "resolver-package.test",
+                "my-package.tgz"
+            )
+        );
+    const getModuleStream = (tgzFile: string) =>
+        createReadStream(
+            path.join(__dirname, "data", "resolver-package.test", tgzFile)
+        );
 
-    const getMyPackageStream = () => createReadStream(path.join(__dirname, "data", "resolver-package.test", "my-package.tgz"));
-    const getModuleStream = (tgzFile:string) => createReadStream(path.join(__dirname, "data", "resolver-package.test", tgzFile));
+    describeClass({ ResolverPackage }, function () {
+        this.timeout("15s");
+        this.slow("7s");
 
-
-    describeClass({ResolverPackage}, function() {
-
-        this.timeout('15s');
-        this.slow('7s');
-
-        let tmpDir:string|undefined = undefined;
+        let tmpDir: string | undefined = undefined;
         const codeZipPath = () => path.join(`${tmpDir}`, "code.zip");
         const codeUnpackPath = () => path.join(`${tmpDir}`, "unpack");
-        const myPackageIndexPath = () =>  path.join(codeUnpackPath(), "index.js");
-        const myPackagePackageJsonPath = () =>  path.join(codeUnpackPath(), "package.json");
-        const myPackageModulePath = (moduleName:string) => path.join(codeUnpackPath(), "node_modules", moduleName);
-
+        const myPackageIndexPath = () =>
+            path.join(codeUnpackPath(), "index.js");
+        const myPackagePackageJsonPath = () =>
+            path.join(codeUnpackPath(), "package.json");
+        const myPackageModulePath = (moduleName: string) =>
+            path.join(codeUnpackPath(), "node_modules", moduleName);
 
         beforeEach(async () => {
             tmpDir = await createTemporaryDirAsync();
@@ -47,118 +57,157 @@ describe("ResolverPackage", function() {
         afterEach(async () => {
             if (tmpDir) {
                 try {
-                    await fs.rm(tmpDir, { force:true, recursive:true});
+                    await fs.rm(tmpDir, { force: true, recursive: true });
                     debugTest(`Deleted tmp directory "${tmpDir}"`);
                 } catch (err) {
-                    debugTest(`Deleting tmp directory "${tmpDir}" failed.`)
+                    debugTest(`Deleting tmp directory "${tmpDir}" failed.`);
                 }
-
             }
             tmpDir = undefined;
         });
 
-        describeMember<ResolverPackage>("createLambdaCodeZipStream", function() {
-            it("Should create a correct zip file if no modules are added", async function() {
+        describeMember<ResolverPackage>(
+            "createLambdaCodeZipStream",
+            function () {
+                it("Should create a correct zip file if no modules are added", async function () {
+                    debugTest("TMP DIR IS " + tmpDir);
+                    const sut = new ResolverPackage(getMyPackageStream);
 
-                debugTest("TMP DIR IS "+ tmpDir);
-                const sut = new ResolverPackage(getMyPackageStream);
+                    const toStream = createWriteStream(codeZipPath());
+                    sut.createLambdaCodeZipStream().pipe(toStream);
 
-                const toStream = createWriteStream(codeZipPath());
-                sut.createLambdaCodeZipStream().pipe(toStream);
+                    await streamFinishedAsync(toStream);
 
-                await streamFinishedAsync(toStream);
+                    expect(await fsu.fileExistsAsync(codeZipPath())).to.be.true;
 
-                expect(await fsu.fileExistsAsync(codeZipPath())).to.be.true;
+                    const readStream = createReadStream(codeZipPath());
+                    const writeStream = unzipper.Extract({
+                        path: codeUnpackPath(),
+                    });
+                    readStream.pipe(writeStream);
 
-                const readStream = createReadStream(codeZipPath());
-                const writeStream = unzipper.Extract({ path: codeUnpackPath() });
-                readStream.pipe(writeStream);
+                    const promise = new Promise<void>((resolve, reject) => {
+                        if (writeStream.writableFinished) {
+                            resolve();
+                        } else {
+                            writeStream.on("close", (err: unknown) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve();
+                                }
+                            });
+                        }
+                    });
+                    await promise;
 
-                const promise = new Promise<void>((resolve, reject) => {
-                    if (writeStream.writableFinished) {
-                        resolve();
-                    } else {
-                        writeStream.on('close', (err:unknown) => {
-                            if (err) {
-                                reject(err);
-                            } else {
-                                resolve();
-                            }
-                        });
-                    }
+                    expect(
+                        await fsu.fileExistsAsync(myPackageIndexPath()),
+                        "index.js exists"
+                    ).to.be.true;
+                    expect(
+                        await fsu.fileExistsAsync(myPackagePackageJsonPath()),
+                        "package.json exists"
+                    ).to.be.true;
 
+                    const packageInfo = JSON.parse(
+                        (
+                            await fs.readFile(myPackagePackageJsonPath())
+                        ).toString("utf-8")
+                    ) as { [key: string]: unknown };
+
+                    expect(packageInfo["name"]).to.be.equal("my-package");
                 });
-                await promise;
 
-                expect (await fsu.fileExistsAsync(myPackageIndexPath()), "index.js exists").to.be.true;
-                expect (await fsu.fileExistsAsync(myPackagePackageJsonPath()), "package.json exists").to.be.true;
+                it("Should create a correct zip file if multiple modules are added", async function () {
+                    const sut = new ResolverPackage(getMyPackageStream);
 
-                const packageInfo =
-                    JSON.parse((await fs.readFile(myPackagePackageJsonPath())).toString('utf-8')) as {[key:string]:unknown};
+                    sut.addHandlerFromTarballStream(
+                        "MyModule.tar.gz",
+                        getModuleStream("my-module.tgz")
+                    );
+                    sut.addHandlerFromTarballStream(
+                        "HerModule.tar.gz",
+                        getModuleStream("her-module.tgz")
+                    );
+                    sut.addHandlerFromTarballStream(
+                        "HisModule.tar.gz",
+                        getModuleStream("his-module.tgz")
+                    );
 
-                expect (packageInfo["name"]).to.be.equal("my-package");
-            });
+                    const toStream = createWriteStream(codeZipPath());
+                    sut.createLambdaCodeZipStream().pipe(toStream);
 
-            it("Should create a correct zip file if multiple modules are added", async function() {
+                    await streamFinishedAsync(toStream);
 
-                const sut = new ResolverPackage(getMyPackageStream);
+                    expect(await fsu.fileExistsAsync(codeZipPath())).to.be.true;
 
-                sut.addHandlerFromTarballStream("MyModule.tar.gz", getModuleStream("my-module.tgz"));
-                sut.addHandlerFromTarballStream("HerModule.tar.gz", getModuleStream("her-module.tgz"));
-                sut.addHandlerFromTarballStream("HisModule.tar.gz", getModuleStream("his-module.tgz"));
+                    const readStream = createReadStream(codeZipPath());
+                    const writeStream = unzipper.Extract({
+                        path: codeUnpackPath(),
+                    });
 
-                const toStream = createWriteStream(codeZipPath());
-                sut.createLambdaCodeZipStream().pipe(toStream);
+                    readStream.pipe(writeStream);
 
-                await streamFinishedAsync(toStream);
+                    const promise = new Promise<void>((resolve, reject) => {
+                        if (writeStream.writableFinished) {
+                            resolve();
+                        } else {
+                            writeStream.on("close", (err: unknown) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve();
+                                }
+                            });
+                        }
+                    });
+                    await promise;
+                    //await streamFinishedAsync(writeStream);
 
-                expect(await fsu.fileExistsAsync(codeZipPath())).to.be.true;
+                    expect(
+                        await fsu.fileExistsAsync(myPackageIndexPath()),
+                        "index.js exists"
+                    ).to.be.true;
+                    expect(
+                        await fsu.fileExistsAsync(myPackagePackageJsonPath()),
+                        "package.json exists"
+                    ).to.be.true;
 
-                const readStream = createReadStream(codeZipPath());
-                const writeStream = unzipper.Extract({ path: codeUnpackPath() });
+                    const packageInfo = JSON.parse(
+                        (
+                            await fs.readFile(myPackagePackageJsonPath())
+                        ).toString("utf-8")
+                    ) as { [key: string]: unknown };
 
-                readStream.pipe(writeStream);
+                    expect(packageInfo["name"]).to.be.equal("my-package");
 
-                const promise = new Promise<void>((resolve, reject) => {
-                    if (writeStream.writableFinished) {
-                        resolve();
-                    } else {
-                        writeStream.on('close', (err:unknown) => {
-                            if (err) {
-                                reject(err);
-                            } else {
-                                resolve();
-                            }
-                        });
-                    }
-
+                    expect(
+                        await fsu.directoryExistsAsync(
+                            myPackageModulePath("my-module")
+                        ),
+                        "my-module is installed"
+                    ).to.be.true;
+                    expect(
+                        await fsu.directoryExistsAsync(
+                            myPackageModulePath("her-module")
+                        ),
+                        "her-module is installed"
+                    ).to.be.true;
+                    expect(
+                        await fsu.directoryExistsAsync(
+                            myPackageModulePath("his-module")
+                        ),
+                        "his-module is installed"
+                    ).to.be.true;
                 });
-                await promise;
-                //await streamFinishedAsync(writeStream);
+            }
+        );
 
-                expect (await fsu.fileExistsAsync(myPackageIndexPath()), "index.js exists").to.be.true;
-                expect (await fsu.fileExistsAsync(myPackagePackageJsonPath()), "package.json exists").to.be.true;
-
-                const packageInfo =
-                    JSON.parse((await fs.readFile(myPackagePackageJsonPath())).toString('utf-8')) as {[key:string]:unknown};
-
-                expect (packageInfo["name"]).to.be.equal("my-package");
-
-                expect(await fsu.directoryExistsAsync(myPackageModulePath("my-module")), "my-module is installed").to.be.true;
-                expect(await fsu.directoryExistsAsync(myPackageModulePath("her-module")), "her-module is installed").to.be.true;
-                expect(await fsu.directoryExistsAsync(myPackageModulePath("his-module")), "his-module is installed").to.be.true;
-
-
-            });
-
-        });
-
-        describeMember<ResolverPackage>("cleanupAsync", function() {
-            it("Should clean up all the mess", function() {
+        describeMember<ResolverPackage>("cleanupAsync", function () {
+            it("Should clean up all the mess", function () {
                 this.skip();
             });
         });
-
     });
 });
-
