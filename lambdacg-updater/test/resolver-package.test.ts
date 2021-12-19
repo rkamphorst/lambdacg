@@ -1,31 +1,30 @@
 import { ResolverPackage } from "lambdacg-updater/resolver-package";
+import { npmInstallAsync } from "lambdacg-updater/npm-utils";
 import { describeClass, describeMember } from "./lib/mocha-utils";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import fsu from "lambdacg-updater/fs-utils";
 import { expect } from "chai";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import unzipper from "unzipper";
 import { isWriteStreamFinishedAsync } from "./lib/stream-utils";
 import { getLogger } from "./lib/logger";
+import mockFs from "mock-fs";
+import {
+    expectDirectoryToExistAsync,
+    expectFileToExistAsync,
+} from "./lib/expect-file-to-exist";
+import os from "node:os";
 
 const logger = getLogger();
 
+const dataDir = path.join(__dirname, "data", "resolver-package.test");
+
 describe("ResolverPackage", function () {
     const getMyPackageStream = () =>
-        createReadStream(
-            path.join(
-                __dirname,
-                "data",
-                "resolver-package.test",
-                "my-package.tgz"
-            )
-        );
+        createReadStream(path.join(dataDir, "my-package.tgz"));
     const getModuleStream = (tgzFile: string) =>
-        createReadStream(
-            path.join(__dirname, "data", "resolver-package.test", tgzFile)
-        );
+        createReadStream(path.join(dataDir, tgzFile));
 
     describeClass({ ResolverPackage }, function () {
         this.timeout("15s");
@@ -33,12 +32,6 @@ describe("ResolverPackage", function () {
 
         let tmpDir: string | undefined = undefined;
         const codeUnpackPath = () => path.join(`${tmpDir}`, "unpack");
-        const myPackageIndexPath = () =>
-            path.join(codeUnpackPath(), "index.js");
-        const myPackagePackageJsonPath = () =>
-            path.join(codeUnpackPath(), "package.json");
-        const myPackageModulePath = (moduleName: string) =>
-            path.join(codeUnpackPath(), "node_modules", moduleName);
 
         beforeEach(async () => {
             tmpDir = await createTemporaryDirAsync();
@@ -61,27 +54,30 @@ describe("ResolverPackage", function () {
             "createLambdaCodeZipStream",
             function () {
                 it("Should create a correct zip file if no modules are added", async function () {
-                    const sut = new ResolverPackage(getMyPackageStream);
+                    const sut = new ResolverPackage(
+                        getMyPackageStream,
+                        npmInstallAsync
+                    );
 
-                    const writeStream = unzipper.Extract({
-                        path: codeUnpackPath(),
-                    });
-                    sut.createLambdaCodeZipStream().pipe(writeStream);
+                    await isWriteStreamFinishedAsync(
+                        sut.createLambdaCodeZipStream().pipe(
+                            unzipper.Extract({
+                                path: codeUnpackPath(),
+                            })
+                        )
+                    );
 
-                    await isWriteStreamFinishedAsync(writeStream);
-
-                    expect(
-                        await fsu.fileExistsAsync(myPackageIndexPath()),
-                        "index.js exists"
-                    ).to.be.true;
-                    expect(
-                        await fsu.fileExistsAsync(myPackagePackageJsonPath()),
-                        "package.json exists"
-                    ).to.be.true;
+                    await expectFileToExistAsync("index.js", codeUnpackPath());
+                    await expectFileToExistAsync(
+                        "package.json",
+                        codeUnpackPath()
+                    );
 
                     const packageInfo = JSON.parse(
                         (
-                            await fs.readFile(myPackagePackageJsonPath())
+                            await fs.readFile(
+                                path.join(codeUnpackPath(), "package.json")
+                            )
                         ).toString("utf-8")
                     ) as { [key: string]: unknown };
 
@@ -89,7 +85,10 @@ describe("ResolverPackage", function () {
                 });
 
                 it("Should create a correct zip file if multiple modules are added", async function () {
-                    const sut = new ResolverPackage(getMyPackageStream);
+                    const sut = new ResolverPackage(
+                        getMyPackageStream,
+                        npmInstallAsync
+                    );
 
                     sut.addHandlerFromTarballStream(
                         "MyModule.tar.gz",
@@ -104,55 +103,94 @@ describe("ResolverPackage", function () {
                         getModuleStream("his-module.tgz")
                     );
 
-                    const writeStream = unzipper.Extract({
-                        path: codeUnpackPath(),
-                    });
-                    sut.createLambdaCodeZipStream().pipe(writeStream);
+                    await isWriteStreamFinishedAsync(
+                        sut.createLambdaCodeZipStream().pipe(
+                            unzipper.Extract({
+                                path: codeUnpackPath(),
+                            })
+                        )
+                    );
 
-                    await isWriteStreamFinishedAsync(writeStream);
-
-                    expect(
-                        await fsu.fileExistsAsync(myPackageIndexPath()),
-                        "index.js exists"
-                    ).to.be.true;
-                    expect(
-                        await fsu.fileExistsAsync(myPackagePackageJsonPath()),
-                        "package.json exists"
-                    ).to.be.true;
+                    await expectFileToExistAsync("index.js", codeUnpackPath());
+                    await expectFileToExistAsync(
+                        "package.json",
+                        codeUnpackPath()
+                    );
 
                     const packageInfo = JSON.parse(
                         (
-                            await fs.readFile(myPackagePackageJsonPath())
+                            await fs.readFile(
+                                path.join(codeUnpackPath(), "package.json")
+                            )
                         ).toString("utf-8")
                     ) as { [key: string]: unknown };
 
                     expect(packageInfo["name"]).to.be.equal("my-package");
 
-                    expect(
-                        await fsu.directoryExistsAsync(
-                            myPackageModulePath("my-module")
-                        ),
-                        "my-module is installed"
-                    ).to.be.true;
-                    expect(
-                        await fsu.directoryExistsAsync(
-                            myPackageModulePath("her-module")
-                        ),
-                        "her-module is installed"
-                    ).to.be.true;
-                    expect(
-                        await fsu.directoryExistsAsync(
-                            myPackageModulePath("his-module")
-                        ),
-                        "his-module is installed"
-                    ).to.be.true;
+                    await expectDirectoryToExistAsync(
+                        "node_modules/my-module",
+                        codeUnpackPath()
+                    );
+                    await expectDirectoryToExistAsync(
+                        "node_modules/her-module",
+                        codeUnpackPath()
+                    );
+                    await expectDirectoryToExistAsync(
+                        "node_modules/his-module",
+                        codeUnpackPath()
+                    );
                 });
             }
         );
 
         describeMember<ResolverPackage>("cleanupAsync", function () {
-            it("Should clean up all the mess", function () {
-                this.skip();
+            before(function () {
+                mockFs(
+                    {
+                        [dataDir]: mockFs.load(dataDir),
+                    },
+                    {
+                        createTmp: true,
+                    }
+                );
+            });
+
+            after(function () {
+                mockFs.restore();
+            });
+
+            it("Should cleanup temp files", async function () {
+                // not using the real npm install, because it invokes npm in a seperate shell
+                // that doesn't know about mockFs
+                const sut = new ResolverPackage(getMyPackageStream, () =>
+                    Promise.resolve()
+                );
+
+                sut.addHandlerFromTarballStream(
+                    "MyModule.tar.gz",
+                    getModuleStream("my-module.tgz")
+                );
+
+                await isWriteStreamFinishedAsync(
+                    sut.createLambdaCodeZipStream().pipe(
+                        unzipper.Extract({
+                            path: codeUnpackPath(),
+                        })
+                    )
+                );
+
+                await sut.cleanupAsync();
+
+                const dirContents = await fs.readdir(os.tmpdir());
+                const relativeTmpDir = path.relative(
+                    os.tmpdir(),
+                    tmpDir as string
+                );
+
+                expect(
+                    dirContents,
+                    "only the test tmp dir is still there"
+                ).to.have.deep.members([relativeTmpDir]);
             });
         });
     });

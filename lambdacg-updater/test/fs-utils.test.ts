@@ -4,11 +4,14 @@ import { tmpName } from "tmp";
 import { expect } from "chai";
 import { promisify } from "node:util";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
+import { describeObject } from "./lib/mocha-utils";
 
 const tmpNameAsync = promisify(tmpName);
 
+const { fileExistsAsync, directoryExistsAsync, tryRemoveFileAsync } = fsu;
+
 describe("FsUtils", () => {
-    describe("fileExistsAsync", function () {
+    describeObject({ fileExistsAsync }, function () {
         it("Should return true if it exists and is a file", async () => {
             const filename = await tmpNameAsync();
             try {
@@ -40,7 +43,7 @@ describe("FsUtils", () => {
         });
     });
 
-    describe("directoryExistsAsync", function () {
+    describeObject({ directoryExistsAsync }, function () {
         it("Should return true if it exists and is a directory", async () => {
             const dirname = await createTemporaryDirAsync();
             try {
@@ -70,7 +73,7 @@ describe("FsUtils", () => {
         });
     });
 
-    describe("tryRemoveAsync", function () {
+    describeObject({ tryRemoveFileAsync }, function () {
         it("Should remove the file and return true", async function () {
             const filename = await tmpNameAsync();
             try {

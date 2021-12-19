@@ -11,7 +11,7 @@ const unpackNpmPackageContentsInTarball = async (
     inputStream: Readable
 ): Promise<string> => {
     const tmpdir: string = await mkdtemp(
-        path.join(os.tmpdir(), "lambdacg-resolver-unpack-")
+        path.join(os.tmpdir(), "lambdacg-updater-unpack-package-")
     );
 
     try {

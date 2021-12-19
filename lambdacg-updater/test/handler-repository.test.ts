@@ -5,11 +5,10 @@ import {
     FolderItemInterface,
 } from "lambdacg-updater/handler-repository-contract";
 import { mock, stub } from "sinon";
-import { Readable, Duplex, finished as streamFinised } from "stream";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
-import { promisify } from "node:util";
-
-const streamFinishedAsync = promisify(streamFinised);
+import { isReadStreamFinishedAsync } from "./lib/stream-utils";
+import { Readable, PassThrough } from "node:stream";
+import { describeMember } from "./lib/mocha-utils";
 
 class StubFolder implements FolderInterface {
     listLatestItemVersionsAsync(): Promise<FolderItemInterface[]> {
@@ -34,14 +33,14 @@ class StubFolderItem implements FolderItemInterface {
         return Promise.resolve();
     }
     getDownloadStream(): Readable {
-        const result = new Duplex();
+        const result = new PassThrough();
         result.end();
         return result;
     }
 }
 
 describe("HandlerRepository", function () {
-    describe("hasModulesToUpdate", function () {
+    describeMember<HandlerRepository>("hasModulesToUpdate", function () {
         it("Should throw if called before initialization", async function () {
             const folder = new StubFolder();
             const sut = new HandlerRepository(folder, "updatedTagKey");
@@ -127,64 +126,69 @@ describe("HandlerRepository", function () {
         });
     });
 
-    describe("getHandlerTarballStreamsAsync", function () {
-        it("Should throw if called before initialization", async function () {
-            const folder = new StubFolder();
-            const sut = new HandlerRepository(folder, "updatedTagKey");
-            await expectToThrowAsync(() => sut.getHandlerTarballStreamsAsync());
-        });
+    describeMember<HandlerRepository>(
+        "getHandlerTarballStreamsAsync",
+        function () {
+            it("Should throw if called before initialization", async function () {
+                const folder = new StubFolder();
+                const sut = new HandlerRepository(folder, "updatedTagKey");
+                await expectToThrowAsync(() =>
+                    sut.getHandlerTarballStreamsAsync()
+                );
+            });
 
-        it("Should return the name and stream for each folder item", async function () {
-            const folderItems = [
-                new StubFolderItem(),
-                new StubFolderItem(),
-                new StubFolderItem(),
-            ];
+            it("Should return the name and stream for each folder item", async function () {
+                const folderItems = [
+                    new StubFolderItem(),
+                    new StubFolderItem(),
+                    new StubFolderItem(),
+                ];
 
-            stub(folderItems[0], "name").get(() => "a");
-            stub(folderItems[0], "getDownloadStream").returns(
-                Readable.from(Buffer.from("a-content", "utf-8"))
-            );
-            stub(folderItems[1], "name").get(() => "b");
-            stub(folderItems[1], "getDownloadStream").returns(
-                Readable.from(Buffer.from("b-content", "utf-8"))
-            );
-            stub(folderItems[2], "name").get(() => "c");
-            stub(folderItems[2], "getDownloadStream").returns(
-                Readable.from(Buffer.from("c-content", "utf-8"))
-            );
+                stub(folderItems[0], "name").get(() => "a");
+                stub(folderItems[0], "getDownloadStream").returns(
+                    Readable.from(Buffer.from("a-content", "utf-8"))
+                );
+                stub(folderItems[1], "name").get(() => "b");
+                stub(folderItems[1], "getDownloadStream").returns(
+                    Readable.from(Buffer.from("b-content", "utf-8"))
+                );
+                stub(folderItems[2], "name").get(() => "c");
+                stub(folderItems[2], "getDownloadStream").returns(
+                    Readable.from(Buffer.from("c-content", "utf-8"))
+                );
 
-            const folder = new StubFolder();
-            stub(folder, "listLatestItemVersionsAsync").returns(
-                Promise.resolve(folderItems)
-            );
+                const folder = new StubFolder();
+                stub(folder, "listLatestItemVersionsAsync").returns(
+                    Promise.resolve(folderItems)
+                );
 
-            const sut = new HandlerRepository(folder, "updatedTagKey");
+                const sut = new HandlerRepository(folder, "updatedTagKey");
 
-            await sut.initializeWithLatestVersionsAsync();
-            const result = await sut.getHandlerTarballStreamsAsync();
+                await sut.initializeWithLatestVersionsAsync();
+                const result = await sut.getHandlerTarballStreamsAsync();
 
-            const itemContents = await Promise.all(
-                result.map(async (x) => {
-                    const buffers: Buffer[] = [];
-                    x.stream.on("data", (data) => buffers.push(data));
-                    await streamFinishedAsync(x.stream);
-                    return {
-                        name: x.tarballName,
-                        contents: Buffer.concat(buffers).toString("utf-8"),
-                    };
-                })
-            );
+                const itemContents = await Promise.all(
+                    result.map(async (x) => {
+                        const buffers: Buffer[] = [];
+                        x.stream.on("data", (data) => buffers.push(data));
+                        await isReadStreamFinishedAsync(x.stream);
+                        return {
+                            name: x.tarballName,
+                            contents: Buffer.concat(buffers).toString("utf-8"),
+                        };
+                    })
+                );
 
-            expect(itemContents).to.have.deep.members([
-                { name: "c", contents: "c-content" },
-                { name: "b", contents: "b-content" },
-                { name: "a", contents: "a-content" },
-            ]);
-        });
-    });
+                expect(itemContents).to.have.deep.members([
+                    { name: "c", contents: "c-content" },
+                    { name: "b", contents: "b-content" },
+                    { name: "a", contents: "a-content" },
+                ]);
+            });
+        }
+    );
 
-    describe("markUpdatesAsync", function () {
+    describeMember<HandlerRepository>("markUpdatesAsync", function () {
         it("Should throw if called before initialization", async function () {
             const folder = new StubFolder();
             const sut = new HandlerRepository(folder, "updatedTagKey");

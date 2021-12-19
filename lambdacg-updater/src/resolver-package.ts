@@ -6,7 +6,6 @@ import path from "node:path";
 import { Writable, PassThrough } from "node:stream";
 import { unpackNpmPackageContentsInTarball } from "./unpack";
 import {
-    npmInstallAsync,
     storeTemporaryNpmTarballAsync,
     TemporaryNpmTarball,
 } from "./npm-utils";
@@ -19,11 +18,20 @@ class ResolverPackage implements ResolverPackageInterface {
         tarballName: string;
         promise: Promise<TemporaryNpmTarball>;
     }[];
-    #getPackageAssetStream: () => Readable;
 
-    constructor(getPackageAssetStream: () => Readable) {
+    #getPackageAssetStream: () => Readable;
+    #npmInstallAsync: (targetDir: string, packages: string[]) => Promise<void>;
+
+    constructor(
+        getPackageAssetStream: () => Readable,
+        npmInstallAsync: (
+            targetDir: string,
+            packages: string[]
+        ) => Promise<void>
+    ) {
         this.#addModulePromises = [];
         this.#getPackageAssetStream = getPackageAssetStream;
+        this.#npmInstallAsync = npmInstallAsync;
     }
 
     addHandlerFromTarballStream(
@@ -91,7 +99,7 @@ class ResolverPackage implements ResolverPackageInterface {
             // install the fetched modules, and write the handlerFactories.json file.
             // again, this can be done in parallel
             await Promise.all([
-                npmInstallAsync(
+                this.#npmInstallAsync(
                     packageDirectory,
                     tarballNamesAndFiles.map(
                         ({ tarballInfo }) => tarballInfo.location
@@ -114,7 +122,7 @@ class ResolverPackage implements ResolverPackageInterface {
             // when zip is completed, remove package dir.
             // do this synchronously for now because nobody is waiting anyway.
             // don't know what happens if we do it async and don't await it...
-            archive.on("close", () => {
+            archive.on("finish", () => {
                 rmSync(packageDirectory, { force: true, recursive: true });
             });
 
