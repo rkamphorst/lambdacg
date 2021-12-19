@@ -1,7 +1,8 @@
+import "mocha";
+
+import { expect } from "chai";
 import { HandlerResponse } from "lambdacg-contract";
 import { compose } from "lambdacg-resolver/composer";
-import { expect } from "chai";
-import "mocha";
 
 describe("Composer", () => {
     it("Should compose two simple objects", () => {

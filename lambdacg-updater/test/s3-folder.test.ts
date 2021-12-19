@@ -1,6 +1,7 @@
-import { v4 as uuid } from "uuid";
-import { S3Folder, S3Object } from "lambdacg-updater/s3-folder";
 import { expect } from "chai";
+import { S3Folder, S3Object } from "lambdacg-updater/s3-folder";
+import { v4 as uuid } from "uuid";
+
 import { AwsTestSession } from "./lib/aws-test-session";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeClass, describeMember } from "./lib/mocha-utils";

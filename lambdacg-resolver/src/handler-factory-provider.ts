@@ -1,6 +1,7 @@
-import { ProvideHandlerFactoriesAsyncFunction } from "./gateway-contract";
 import { HandlerFactory } from "lambdacg-contract";
 import fs from "node:fs/promises";
+
+import { ProvideHandlerFactoriesAsyncFunction } from "./gateway-contract";
 
 const getModuleNamesFromJsonFileAsync = async (filePath: string) => {
     const fileContents = (
@@ -98,7 +99,7 @@ const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
     };
 
 export {
+    getModuleNamesFromJsonFileAsync,
     provideHandlerFactoriesAsync,
     setHandlerFactoryListSource,
-    getModuleNamesFromJsonFileAsync,
 };

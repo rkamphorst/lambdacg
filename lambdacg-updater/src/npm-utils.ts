@@ -1,10 +1,11 @@
 import { exec } from "child_process";
-import { PassThrough, Readable, finished as streamFinished } from "stream";
-import { promisify } from "node:util";
-import tarStream from "tar-stream";
-import gunzip from "gunzip-maybe";
-import { tmpName } from "tmp";
 import { createWriteStream } from "fs";
+import gunzip from "gunzip-maybe";
+import { promisify } from "node:util";
+import { finished as streamFinished, PassThrough, Readable } from "stream";
+import tarStream from "tar-stream";
+import { tmpName } from "tmp";
+
 import fsu from "./fs-utils";
 
 type NpmPackageInfo = {
@@ -166,9 +167,9 @@ async function storeTemporaryNpmTarballAsync(
 }
 
 export {
-    NpmPackageInfo,
-    TemporaryNpmTarball,
     npmInstallAsync,
+    NpmPackageInfo,
     readNpmPackageInfoAsync,
     storeTemporaryNpmTarballAsync,
+    TemporaryNpmTarball,
 };

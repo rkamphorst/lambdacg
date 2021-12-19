@@ -1,4 +1,4 @@
-import { Writable, Readable } from "node:stream";
+import { Readable, Writable } from "node:stream";
 
 const isWriteStreamFinishedAsync = (writeStream: Writable) => {
     return new Promise<void>((resolve, reject) => {
@@ -32,4 +32,4 @@ const isReadStreamFinishedAsync = (readStream: Readable) => {
     });
 };
 
-export { isWriteStreamFinishedAsync, isReadStreamFinishedAsync };
+export { isReadStreamFinishedAsync, isWriteStreamFinishedAsync };

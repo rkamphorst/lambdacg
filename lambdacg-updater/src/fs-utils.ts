@@ -1,5 +1,5 @@
-import fs from "node:fs/promises";
 import { Stats } from "node:fs";
+import fs from "node:fs/promises";
 
 const tryFstatAsync = async (filePath: string): Promise<Stats | null> => {
     try {

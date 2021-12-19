@@ -51,4 +51,4 @@ const getBucketAndKeyFromS3ObjectUrl = (
     };
 };
 
-export { getBucketAndPrefixFromS3FolderUrl, getBucketAndKeyFromS3ObjectUrl };
+export { getBucketAndKeyFromS3ObjectUrl, getBucketAndPrefixFromS3FolderUrl };

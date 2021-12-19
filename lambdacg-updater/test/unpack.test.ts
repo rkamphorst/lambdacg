@@ -1,10 +1,11 @@
+import { expect } from "chai";
 import { unpackNpmPackageContentsInTarball } from "lambdacg-updater/unpack";
 import { createReadStream } from "node:fs";
-import path from "node:path";
 import fs from "node:fs/promises";
-import { expect } from "chai";
-import { describeObject } from "./lib/mocha-utils";
+import path from "node:path";
+
 import { getLogger } from "./lib/logger";
+import { describeObject } from "./lib/mocha-utils";
 
 const dataDir = path.join(__dirname, "data", "unpack.test");
 const logger = getLogger();

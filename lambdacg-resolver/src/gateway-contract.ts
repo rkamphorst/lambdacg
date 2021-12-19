@@ -1,7 +1,7 @@
 import {
-    HandlerResponse,
     HandlerFactory,
     HandlerParameters,
+    HandlerResponse,
 } from "lambdacg-contract";
 
 type ComposeFunction = (
@@ -42,12 +42,12 @@ interface GatewayInterface {
 }
 
 export {
-    ProvideHandlerFactoriesAsyncFunction,
     ComposeFunction,
     ExecuteAsyncFunction,
-    GatewayRequest,
-    GatewaySuccessResponse,
     GatewayErrorResponse,
-    GatewayResponse,
     GatewayInterface,
+    GatewayRequest,
+    GatewayResponse,
+    GatewaySuccessResponse,
+    ProvideHandlerFactoriesAsyncFunction,
 };

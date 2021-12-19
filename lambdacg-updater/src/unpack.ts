@@ -1,11 +1,11 @@
+import gunzip from "gunzip-maybe";
+import { createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import { mkdtemp } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 import tar from "tar-stream";
-import gunzip from "gunzip-maybe";
 
 const unpackNpmPackageContentsInTarball = async (
     inputStream: Readable

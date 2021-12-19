@@ -1,4 +1,5 @@
 import { getAssetStreamAsync } from "lambdacg-updater/assets";
+
 import { describeObject } from "./lib/mocha-utils";
 
 describe("Assets", () => {

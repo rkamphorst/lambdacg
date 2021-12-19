@@ -1,16 +1,17 @@
-import { Readable } from "stream";
-import { ResolverPackageInterface } from "./updater-contract";
-import fs from "node:fs/promises";
+import archiver from "archiver";
 import { rmSync } from "node:fs";
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
-import { Writable, PassThrough } from "node:stream";
-import { unpackNpmPackageContentsInTarball } from "./unpack";
+import { PassThrough, Writable } from "node:stream";
+import { Readable } from "stream";
+
 import {
     storeTemporaryNpmTarballAsync,
     TemporaryNpmTarball,
 } from "./npm-utils";
-import archiver from "archiver";
-import os from "node:os";
+import { unpackNpmPackageContentsInTarball } from "./unpack";
+import { ResolverPackageInterface } from "./updater-contract";
 
 class ResolverPackage implements ResolverPackageInterface {
     #directoryPromise: Promise<string> | undefined;

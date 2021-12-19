@@ -4,11 +4,12 @@ import {
     FolderInterface,
     FolderItemInterface,
 } from "lambdacg-updater/handler-repository-contract";
+import { PassThrough, Readable } from "node:stream";
 import { mock, stub } from "sinon";
+
 import { expectToThrowAsync } from "./lib/expect-to-throw";
-import { isReadStreamFinishedAsync } from "./lib/stream-utils";
-import { Readable, PassThrough } from "node:stream";
 import { describeMember } from "./lib/mocha-utils";
+import { isReadStreamFinishedAsync } from "./lib/stream-utils";
 
 class StubFolder implements FolderInterface {
     listLatestItemVersionsAsync(): Promise<FolderItemInterface[]> {

@@ -1,8 +1,9 @@
 import { expect } from "chai";
+import { updateLambdaFunctionWithDirectoryAsync } from "lambdacg-updater/lambda-utils";
 import fs from "node:fs/promises";
 import path from "node:path";
+
 import { AwsTestSession } from "./lib/aws-test-session";
-import { updateLambdaFunctionWithDirectoryAsync } from "lambdacg-updater/lambda-utils";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import { getLogger } from "./lib/logger";
 import { describeObject } from "./lib/mocha-utils";

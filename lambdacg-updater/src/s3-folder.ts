@@ -1,13 +1,14 @@
 import { AWSError, S3 } from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
 import { Readable } from "node:stream";
+
 import {
     FolderInterface,
     FolderItemInterface,
 } from "./handler-repository-contract";
 import {
-    getBucketAndPrefixFromS3FolderUrl,
     getBucketAndKeyFromS3ObjectUrl,
+    getBucketAndPrefixFromS3FolderUrl,
 } from "./s3-utils";
 
 class S3Folder implements FolderInterface {
@@ -173,8 +174,8 @@ class S3Object implements FolderItemInterface {
 }
 
 export {
+    getBucketAndKeyFromS3ObjectUrl,
+    getBucketAndPrefixFromS3FolderUrl,
     S3Folder,
     S3Object,
-    getBucketAndPrefixFromS3FolderUrl,
-    getBucketAndKeyFromS3ObjectUrl,
 };

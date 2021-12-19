@@ -17,4 +17,4 @@ function describeMember<THost>(
 
 const describeClass = describeObject;
 
-export { describeObject, describeMember, describeClass };
+export { describeClass, describeMember, describeObject };

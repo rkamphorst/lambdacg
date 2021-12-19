@@ -1,20 +1,21 @@
-import { ResolverPackage } from "lambdacg-updater/resolver-package";
+import { expect } from "chai";
 import { npmInstallAsync } from "lambdacg-updater/npm-utils";
-import { describeClass, describeMember } from "./lib/mocha-utils";
+import { ResolverPackage } from "lambdacg-updater/resolver-package";
+import mockFs from "mock-fs";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
-import { expect } from "chai";
-import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import unzipper from "unzipper";
-import { isWriteStreamFinishedAsync } from "./lib/stream-utils";
-import { getLogger } from "./lib/logger";
-import mockFs from "mock-fs";
+
+import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import {
     expectDirectoryToExistAsync,
     expectFileToExistAsync,
 } from "./lib/expect-file-to-exist";
-import os from "node:os";
+import { getLogger } from "./lib/logger";
+import { describeClass, describeMember } from "./lib/mocha-utils";
+import { isWriteStreamFinishedAsync } from "./lib/stream-utils";
 
 const logger = getLogger();
 

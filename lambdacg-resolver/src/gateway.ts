@@ -1,10 +1,10 @@
 import {
-    ExecuteAsyncFunction,
     ComposeFunction,
-    ProvideHandlerFactoriesAsyncFunction,
+    ExecuteAsyncFunction,
+    GatewayInterface,
     GatewayRequest,
     GatewayResponse,
-    GatewayInterface,
+    ProvideHandlerFactoriesAsyncFunction,
 } from "./gateway-contract";
 
 class Gateway implements GatewayInterface {

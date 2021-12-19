@@ -1,13 +1,14 @@
-import { GatewayRequest, GatewayResponse } from "./gateway-contract";
-import { Gateway } from "./gateway";
-import { executeAsync } from "./executor";
+import { AppSyncResolverEvent } from "aws-lambda";
+
 import { compose } from "./composer";
+import { executeAsync } from "./executor";
+import { Gateway } from "./gateway";
+import { GatewayRequest, GatewayResponse } from "./gateway-contract";
 import {
+    getModuleNamesFromJsonFileAsync,
     provideHandlerFactoriesAsync,
     setHandlerFactoryListSource,
-    getModuleNamesFromJsonFileAsync,
 } from "./handler-factory-provider";
-import { AppSyncResolverEvent } from "aws-lambda";
 
 setHandlerFactoryListSource(() =>
     getModuleNamesFromJsonFileAsync("./handlerFactories.json")

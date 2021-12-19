@@ -1,12 +1,13 @@
-import path from "path";
+import { expect } from "chai";
 import fs from "fs";
 import {
     readNpmPackageInfoAsync,
     storeTemporaryNpmTarballAsync,
 } from "lambdacg-updater/npm-utils";
-import { expect } from "chai";
+import path from "path";
 import { PassThrough } from "stream";
 import streamEqualAsync from "stream-equal";
+
 import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
 

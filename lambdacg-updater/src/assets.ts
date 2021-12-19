@@ -1,6 +1,7 @@
-import { Readable } from "node:stream";
 import { createReadStream } from "node:fs";
 import path from "node:path";
+import { Readable } from "node:stream";
+
 import fsu from "./fs-utils";
 
 const findPackageRootAsync = async (startPath: string): Promise<string> => {

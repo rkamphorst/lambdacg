@@ -1,6 +1,6 @@
+import { assert, expect } from "chai";
 import { HandlerFactory, HandlerFunction } from "lambdacg-contract";
 import { executeAsync } from "lambdacg-resolver/executor";
-import { assert, expect } from "chai";
 import sinon from "sinon";
 
 describe("Executor", () => {

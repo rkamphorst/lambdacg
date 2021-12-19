@@ -1,7 +1,8 @@
-import { config as awsConfig, Lambda, S3 } from "aws-sdk";
-import { getBucketAndPrefixFromS3FolderUrl } from "./s3-utils";
 import archiver from "archiver";
+import { config as awsConfig, Lambda, S3 } from "aws-sdk";
 import { v4 as uuid } from "uuid";
+
+import { getBucketAndPrefixFromS3FolderUrl } from "./s3-utils";
 
 const updateLambdaFunctionWithDirectoryAsync = async (
     codeDirectory: string,

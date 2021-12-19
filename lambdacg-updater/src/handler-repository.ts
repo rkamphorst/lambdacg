@@ -1,9 +1,10 @@
 import { Readable } from "stream";
-import { HandlerRepositoryInterface } from "./updater-contract";
+
 import {
     FolderInterface,
     FolderItemInterface,
 } from "./handler-repository-contract";
+import { HandlerRepositoryInterface } from "./updater-contract";
 
 class HandlerRepository implements HandlerRepositoryInterface {
     #folder: FolderInterface;

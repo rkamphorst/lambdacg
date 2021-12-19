@@ -1,6 +1,6 @@
-import { config as awsConfig, STS, S3, Lambda } from "aws-sdk";
-import { v4 as uuid } from "uuid";
+import { config as awsConfig, Lambda, S3, STS } from "aws-sdk";
 import { Context } from "mocha";
+import { v4 as uuid } from "uuid";
 
 class AwsTestSession {
     #stsClient: STS;

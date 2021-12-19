@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import sinon from "sinon";
 import { Gateway } from "lambdacg-resolver/gateway";
 import {
     ComposeFunction,
     ExecuteAsyncFunction,
     ProvideHandlerFactoriesAsyncFunction,
 } from "lambdacg-resolver/gateway-contract";
+import sinon from "sinon";
 
 describe("Gateway", () => {
     it("Should call compose and execute", async () => {

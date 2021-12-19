@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import path from "path";
 import fsu from "lambdacg-updater/fs-utils";
+import path from "path";
 
 const expectDirectoryToExistAsync = async (
     filePath: string,
