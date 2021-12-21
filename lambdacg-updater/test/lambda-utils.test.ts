@@ -1,5 +1,6 @@
+import archiver from "archiver";
 import { expect } from "chai";
-import { updateLambdaFunctionWithDirectoryAsync } from "lambdacg-updater/lambda-utils";
+import { updateLambdaFunctionWithZipStreamAsync } from "lambdacg-updater/lambda-utils";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -30,7 +31,7 @@ describe("LambdaUtils", async function () {
     let lambdaFunction: string;
     let s3Bucket: string;
 
-    describeObject({ updateLambdaFunctionWithDirectoryAsync }, function () {
+    describeObject({ updateLambdaFunctionWithZipStreamAsync }, function () {
         before(async () => {
             if (awsTestSession.hasAwsCredentials()) {
                 const zipFileContents = await fs.readFile(
@@ -53,9 +54,13 @@ describe("LambdaUtils", async function () {
                     'exports.handler = async function() { return { result: "updated" }; };\n'
                 );
 
+                const archive = archiver("zip");
+                archive.directory(tmpdir, false);
+                archive.finalize();
+
                 try {
-                    await updateLambdaFunctionWithDirectoryAsync(
-                        tmpdir,
+                    await updateLambdaFunctionWithZipStreamAsync(
+                        archive,
                         lambdaFunction,
                         `s3://${s3Bucket}/`
                     );

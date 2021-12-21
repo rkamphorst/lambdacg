@@ -1,20 +1,14 @@
-import archiver from "archiver";
-import { config as awsConfig, Lambda, S3 } from "aws-sdk";
+import { Lambda, S3 } from "aws-sdk";
+import { Readable } from "node:stream";
 import { v4 as uuid } from "uuid";
 
 import { getBucketAndPrefixFromS3FolderUrl } from "./s3-utils";
 
-const updateLambdaFunctionWithDirectoryAsync = async (
-    codeDirectory: string,
+const updateLambdaFunctionWithZipStreamAsync = async (
+    zipStream: Readable,
     lambdaName: string,
     s3FolderUrl: string
 ) => {
-    awsConfig.update({ region: "eu-west-1" });
-
-    const archive = archiver("zip");
-    archive.directory(codeDirectory, false);
-    archive.finalize();
-
     const { Bucket: s3Bucket, Prefix: s3Prefix } =
         await getBucketAndPrefixFromS3FolderUrl(s3FolderUrl);
     const s3Key = `${s3Prefix}lambdacg-resolver-${uuid()}.zip`;
@@ -24,7 +18,7 @@ const updateLambdaFunctionWithDirectoryAsync = async (
         .upload({
             Bucket: s3Bucket,
             Key: s3Key,
-            Body: archive,
+            Body: zipStream,
         })
         .promise();
 
@@ -38,4 +32,4 @@ const updateLambdaFunctionWithDirectoryAsync = async (
         .promise();
 };
 
-export { updateLambdaFunctionWithDirectoryAsync };
+export { updateLambdaFunctionWithZipStreamAsync };
