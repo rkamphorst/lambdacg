@@ -1,4 +1,5 @@
-import { config as awsConfig, Lambda, S3, STS } from "aws-sdk";
+import { AWSError, Lambda, S3, STS } from "aws-sdk";
+import { PromiseResult } from "aws-sdk/lib/request";
 import { Context } from "mocha";
 import { v4 as uuid } from "uuid";
 
@@ -7,7 +8,6 @@ class AwsTestSession {
     #lambdaClient: Lambda;
     #s3Client: S3;
     #awsAccount?: string;
-    #awsRegion: string;
     #hasAwsCredentials?: boolean;
     #resourceNamePrefix: string;
 
@@ -19,11 +19,8 @@ class AwsTestSession {
 
     constructor(
         inform: (message: string) => void,
-        region?: string,
         resourceNamePrefix = "lambdacgtest-"
     ) {
-        this.#awsRegion = region ?? "eu-west-1";
-        awsConfig.update({ region: this.#awsRegion });
         this.#stsClient = new STS();
         this.#lambdaClient = new Lambda();
         this.#s3Client = new S3();
@@ -74,11 +71,18 @@ class AwsTestSession {
         await this.#s3Client
             .createBucket({
                 Bucket: s3Bucket,
-                CreateBucketConfiguration: {
-                    LocationConstraint: this.#awsRegion,
+            })
+            .promise();
+
+        await this.#s3Client
+            .putBucketVersioning({
+                Bucket: s3Bucket,
+                VersioningConfiguration: {
+                    Status: "Enabled",
                 },
             })
             .promise();
+
         this.#tempS3Buckets.push(s3Bucket);
         this.#inform(`Created s3 bucket ${s3Bucket}`);
         return s3Bucket;
@@ -88,15 +92,9 @@ class AwsTestSession {
         const s3Bucket = await this.createS3BucketAsync();
 
         await Promise.all(
-            Object.keys(contents).map((key) =>
-                this.#s3Client
-                    .putObject({
-                        Bucket: s3Bucket,
-                        Key: key,
-                        Body: contents[key],
-                    })
-                    .promise()
-            )
+            Object.keys(contents).map(async (key) => {
+                await this.uploadS3ObjectAsync(s3Bucket, key, contents[key]);
+            })
         );
         if (!(s3Bucket in this.#tempS3Contents)) {
             this.#tempS3Contents[s3Bucket] = [];
@@ -109,6 +107,20 @@ class AwsTestSession {
             } objects to s3 bucket ${s3Bucket}`
         );
         return s3Bucket;
+    }
+
+    async uploadS3ObjectAsync(
+        s3Bucket: string,
+        key: string,
+        content: string
+    ): Promise<void> {
+        await this.#s3Client
+            .putObject({
+                Bucket: s3Bucket,
+                Key: key,
+                Body: content,
+            })
+            .promise();
     }
 
     async createLambdaAsync(zipFileContents: Buffer) {
@@ -238,39 +250,59 @@ class AwsTestSession {
         let continuation: string | undefined;
         let counter = 0;
         let deleteSuccessful = true;
+
+        let continuationToken:
+            | {
+                  KeyMarker: string | undefined;
+                  VersionIdMarker: string | undefined;
+              }
+            | undefined = undefined;
+
         do {
-            const response = await this.#s3Client
-                .listObjectsV2({
+            const listVersionsResult: PromiseResult<
+                S3.ListObjectVersionsOutput,
+                AWSError
+            > = await this.#s3Client
+                .listObjectVersions({
                     Bucket: s3Bucket,
-                    ContinuationToken: continuation,
+                    ...continuationToken,
                 })
                 .promise();
 
-            const { Contents: contents, IsTruncated: isTruncated } = response;
+            const deleteMarkers = listVersionsResult.DeleteMarkers;
+            const versions = listVersionsResult.Versions;
 
-            continuation = isTruncated ? response.ContinuationToken : undefined;
-
-            if (contents) {
-                await Promise.all(
-                    contents.map(async (s3Obj) => {
-                        if (s3Obj.Key) {
+            await Promise.all([
+                ...[...(versions ?? []), ...(deleteMarkers ?? [])].map(
+                    async (s3ObjVersion) => {
+                        if (s3ObjVersion.Key) {
                             try {
                                 await this.#s3Client
                                     .deleteObject({
                                         Bucket: s3Bucket,
-                                        Key: s3Obj.Key,
+                                        Key: s3ObjVersion.Key,
+                                        VersionId: s3ObjVersion.VersionId,
                                     })
                                     .promise();
                                 counter++;
                             } catch {
                                 this.#inform(
-                                    `Could not delete s3://${s3Bucket}/${s3Obj.Key}`
+                                    `Could not delete s3://${s3Bucket}/${s3ObjVersion.Key}@${s3ObjVersion.VersionId}`
                                 );
                                 deleteSuccessful = false;
                             }
                         }
-                    })
-                );
+                    }
+                ),
+            ]);
+
+            if (listVersionsResult.IsTruncated) {
+                continuationToken = {
+                    KeyMarker: listVersionsResult.NextKeyMarker,
+                    VersionIdMarker: listVersionsResult.NextVersionIdMarker,
+                };
+            } else {
+                continuationToken = undefined;
             }
         } while (continuation);
 

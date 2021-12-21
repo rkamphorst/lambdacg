@@ -33,11 +33,7 @@ const fileNames = [
 
 describe("S3Folder", async function () {
     debugTestCallback = undefined;
-    const awsTestSession = new AwsTestSession(
-        debugTest,
-        "eu-west-1",
-        "lambdacgtest-"
-    );
+    const awsTestSession = new AwsTestSession(debugTest, "eu-west-1");
 
     // these tests are over the network and can be quite slow.
     // therefore we set long timeout and long slowness theshold
@@ -223,6 +219,56 @@ describe("S3Folder", async function () {
                     expect(gotTags).to.have.deep.members([
                         { key: "a", value: "a-value" },
                         { key: "b", value: "b-value" },
+                    ]);
+                })
+            );
+
+            it(
+                "Should set tags on the specific version",
+                awsTestSession.withAws(async function () {
+                    const s3Folder = S3Folder.fromUrl(
+                        `s3://${s3Bucket}`,
+                        awsTestSession.s3Client,
+                        1000
+                    );
+                    const s3ObjectV1 = (
+                        await s3Folder.listLatestItemVersionsAsync(/.*/)
+                    )[0];
+                    await s3ObjectV1.setTagsAsync([]);
+                    const gotTags = await s3ObjectV1.getTagsAsync();
+                    expect(gotTags).to.be.empty;
+
+                    // upload a new version of s3Object
+                    await awsTestSession.uploadS3ObjectAsync(
+                        s3Bucket as string,
+                        s3ObjectV1.key,
+                        "new content"
+                    );
+
+                    // get the latest version of the object
+                    const s3ObjectV2 = (
+                        await s3Folder.listLatestItemVersionsAsync(/.*/)
+                    ).filter((o) => o.key == s3ObjectV1.key)[0];
+
+                    // this should be a new version
+                    expect(s3ObjectV2.version).to.not.be.equal(
+                        s3ObjectV1.version
+                    );
+
+                    // now, set the tags on the latest version
+                    await s3ObjectV2.setTagsAsync([
+                        { key: "x", value: "x-value" },
+                        { key: "z", value: "z-value" },
+                    ]);
+
+                    const gotTagsV1 = await s3ObjectV1.getTagsAsync();
+                    const gotTagsV2 = await s3ObjectV2.getTagsAsync();
+
+                    // v1 should still have no tags, while v2 shoult have them
+                    expect(gotTagsV1).to.be.empty;
+                    expect(gotTagsV2).to.have.deep.members([
+                        { key: "x", value: "x-value" },
+                        { key: "z", value: "z-value" },
                     ]);
                 })
             );

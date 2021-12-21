@@ -13,11 +13,7 @@ const dataDir = path.join(__dirname, "data", "lambda-utils.test");
 const logger = getLogger();
 
 describe("LambdaUtils", async function () {
-    const awsTestSession = new AwsTestSession(
-        (m) => logger.log(m),
-        "eu-west-1",
-        "lambdacgtest-"
-    );
+    const awsTestSession = new AwsTestSession((m) => logger.log(m));
 
     // these tests are over the network and can be quite slow.
     // therefore we set long timeout and long slowness theshold
