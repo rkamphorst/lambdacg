@@ -71,12 +71,12 @@ class ResolverPackage implements ResolverPackageInterface {
         return await storeTemporaryNpmTarballAsync(tarballStream, tmpdir);
     }
 
-    createLambdaCodeZipStream(): Readable {
+    async createLambdaCodeZipStreamAsync(): Promise<Readable> {
         const result = new PassThrough();
 
         // we don't have to await the following  async call,
         // as it will be "awaited" by the stream reader
-        this.#packageAndZipToStreamAsync(result);
+        await this.#packageAndZipToStreamAsync(result);
 
         return result;
     }

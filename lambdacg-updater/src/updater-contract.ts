@@ -18,7 +18,7 @@ interface ResolverPackageInterface {
         tarballStream: Readable
     ): void;
 
-    createLambdaCodeZipStream(): Readable;
+    createLambdaCodeZipStreamAsync(): Promise<Readable>;
 
     cleanupAsync(): Promise<void>;
 }
