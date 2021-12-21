@@ -85,46 +85,6 @@ describe("ResolverPackage", function () {
                     expect(packageInfo["name"]).to.be.equal("my-package");
                 });
 
-                it("Should create a callable package", async function () {
-                    const sut = new ResolverPackage(
-                        getMyPackageStream,
-                        npmInstallAsync
-                    );
-
-                    sut.addHandlerFromTarballStream(
-                        "MyModule.tar.gz",
-                        getModuleStream("my-module.tgz")
-                    );
-                    sut.addHandlerFromTarballStream(
-                        "HerModule.tar.gz",
-                        getModuleStream("her-module.tgz")
-                    );
-                    sut.addHandlerFromTarballStream(
-                        "HisModule.tar.gz",
-                        getModuleStream("his-module.tgz")
-                    );
-
-                    await isWriteStreamFinishedAsync(
-                        sut.createLambdaCodeZipStream().pipe(
-                            unzipper.Extract({
-                                path: codeUnpackPath(),
-                            })
-                        )
-                    );
-
-                    const imported = (await import(
-                        path.join(codeUnpackPath(), "index.js")
-                    )) as { default: (message: string) => string[] };
-                    const importedFunction = imported.default;
-                    const result = importedFunction("hello test");
-
-                    expect(result).to.have.members([
-                        "my-module: hello test",
-                        "her-module: hello test",
-                        "his-module: hello test",
-                    ]);
-                });
-
                 it("Should create a correct zip file if multiple modules are added", async function () {
                     const sut = new ResolverPackage(
                         getMyPackageStream,
@@ -180,6 +140,76 @@ describe("ResolverPackage", function () {
                         "node_modules/his-module",
                         codeUnpackPath()
                     );
+                });
+
+                it("Should create a callable package if one module is added", async function () {
+                    const sut = new ResolverPackage(
+                        getMyPackageStream,
+                        npmInstallAsync
+                    );
+
+                    sut.addHandlerFromTarballStream(
+                        "MyModule.tar.gz",
+                        getModuleStream("my-module.tgz")
+                    );
+
+                    await isWriteStreamFinishedAsync(
+                        sut.createLambdaCodeZipStream().pipe(
+                            unzipper.Extract({
+                                path: codeUnpackPath(),
+                            })
+                        )
+                    );
+
+                    const imported = (await import(
+                        path.join(codeUnpackPath(), "index.js")
+                    )) as { default: (message: string) => string[] };
+                    const importedFunction = imported.default;
+                    const result = importedFunction("hello test one module");
+
+                    expect(result).to.have.members([
+                        "my-module: hello test one module",
+                    ]);
+                });
+
+                it("Should create a callable package if three modules are added", async function () {
+                    const sut = new ResolverPackage(
+                        getMyPackageStream,
+                        npmInstallAsync
+                    );
+
+                    sut.addHandlerFromTarballStream(
+                        "MyModule.tar.gz",
+                        getModuleStream("my-module.tgz")
+                    );
+                    sut.addHandlerFromTarballStream(
+                        "HerModule.tar.gz",
+                        getModuleStream("her-module.tgz")
+                    );
+                    sut.addHandlerFromTarballStream(
+                        "HisModule.tar.gz",
+                        getModuleStream("his-module.tgz")
+                    );
+
+                    await isWriteStreamFinishedAsync(
+                        sut.createLambdaCodeZipStream().pipe(
+                            unzipper.Extract({
+                                path: codeUnpackPath(),
+                            })
+                        )
+                    );
+
+                    const imported = (await import(
+                        path.join(codeUnpackPath(), "index.js")
+                    )) as { default: (message: string) => string[] };
+                    const importedFunction = imported.default;
+                    const result = importedFunction("hello test three modules");
+
+                    expect(result).to.have.members([
+                        "my-module: hello test three modules",
+                        "her-module: hello test three modules",
+                        "his-module: hello test three modules",
+                    ]);
                 });
             }
         );
