@@ -39,6 +39,57 @@ class S3Folder implements FolderInterface {
         this.#s3Client = s3Client;
     }
 
+    #selectKey(
+        nameRe: RegExp,
+        obj: S3.ObjectVersion | S3.DeleteMarkerEntry
+    ): boolean {
+        const filename = obj.Key?.substr(
+            this.#bucketAndPrefix.Prefix?.length ?? 0
+        );
+
+        return (
+            !!filename &&
+            filename.length > 0 &&
+            filename.indexOf("/") < 0 &&
+            nameRe.test(filename)
+        );
+    }
+
+    #selectLatestVersion(
+        obj: S3.ObjectVersion | S3.DeleteMarkerEntry
+    ): boolean {
+        return obj.IsLatest ?? false;
+    }
+
+    #toS3Object(
+        obj: S3.ObjectVersion | S3.DeleteMarkerEntry,
+        isDeleteMarker: boolean
+    ): S3Object {
+        return new S3Object(
+            {
+                Bucket: this.#bucketAndPrefix.Bucket,
+                Key: obj.Key as string,
+                VersionId: obj.VersionId as string,
+            },
+            isDeleteMarker,
+            this.#s3Client
+        );
+    }
+
+    #filterLatestAndMapToS3Object(
+        nameRe: RegExp,
+        objs: S3.ObjectVersion[] | S3.DeleteMarkerEntry[] | undefined,
+        isDeleteMarker: boolean
+    ) {
+        if (!objs) {
+            return [];
+        }
+        return objs
+            .filter((v) => this.#selectLatestVersion(v))
+            .filter((v) => this.#selectKey(nameRe, v))
+            .map((v) => this.#toS3Object(v, isDeleteMarker));
+    }
+
     async listLatestItemVersionsAsync(nameRe: RegExp): Promise<S3Object[]> {
         const result: S3Object[] = [];
         let continuationToken:
@@ -60,38 +111,18 @@ class S3Folder implements FolderInterface {
                 })
                 .promise();
 
-            const listResultContents = listVersionsResult.Versions?.filter(
-                (v) => v.IsLatest
+            result.push(
+                ...this.#filterLatestAndMapToS3Object(
+                    nameRe,
+                    listVersionsResult.DeleteMarkers,
+                    true
+                ),
+                ...this.#filterLatestAndMapToS3Object(
+                    nameRe,
+                    listVersionsResult.Versions,
+                    false
+                )
             );
-
-            if (listResultContents) {
-                result.push(
-                    ...listResultContents
-                        .filter((v) => {
-                            const filename = v.Key?.substr(
-                                this.#bucketAndPrefix.Prefix?.length ?? 0
-                            );
-
-                            return (
-                                filename &&
-                                filename.length > 0 &&
-                                filename.indexOf("/") < 0 &&
-                                nameRe.test(filename)
-                            );
-                        })
-                        .map(
-                            (v) =>
-                                new S3Object(
-                                    {
-                                        Bucket: this.#bucketAndPrefix.Bucket,
-                                        Key: v.Key as string,
-                                        VersionId: v.VersionId as string,
-                                    },
-                                    this.#s3Client
-                                )
-                        )
-                );
-            }
 
             if (listVersionsResult.IsTruncated) {
                 continuationToken = {
@@ -117,10 +148,11 @@ class S3Object implements FolderItemInterface {
             ...getBucketAndKeyFromS3ObjectUrl(s3ObjectUrl),
             VersionId: version,
         };
-        return new S3Object(bucketKeyVersion, s3Client ?? new S3());
+        return new S3Object(bucketKeyVersion, false, s3Client ?? new S3());
     }
 
     #bucketKeyVersion: { Bucket: string; Key: string; VersionId: string };
+    #isDeleted: boolean;
     #s3Client: S3;
 
     get key(): string {
@@ -137,11 +169,17 @@ class S3Object implements FolderItemInterface {
         return this.#bucketKeyVersion.VersionId;
     }
 
+    get isDeleted(): boolean {
+        return this.#isDeleted;
+    }
+
     constructor(
         bucketKeyVersion: { Bucket: string; Key: string; VersionId: string },
+        isDeleted: boolean,
         s3Client: S3
     ) {
         this.#bucketKeyVersion = bucketKeyVersion;
+        this.#isDeleted = isDeleted;
         this.#s3Client = s3Client;
     }
 

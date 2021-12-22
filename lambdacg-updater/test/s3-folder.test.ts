@@ -36,7 +36,7 @@ describe("S3Folder", async function () {
     const awsTestSession = new AwsTestSession(debugTest, "eu-west-1");
 
     // these tests are over the network and can be quite slow.
-    // therefore we set long timeout and long slowness theshold
+    // therefore we set long timeout and long slowness threshold
     this.timeout("15s");
     this.slow("10s");
 
@@ -269,6 +269,51 @@ describe("S3Folder", async function () {
                     expect(gotTagsV2).to.have.deep.members([
                         { key: "x", value: "x-value" },
                         { key: "z", value: "z-value" },
+                    ]);
+                })
+            );
+
+            it(
+                "Should set tags on a delete marker",
+                awsTestSession.withAws(async function () {
+                    // skip this test, delete markers cannot be tagged unfortunately
+                    this.skip();
+
+                    await awsTestSession.uploadS3ObjectAsync(
+                        s3Bucket as string,
+                        "object-to-be-deleted",
+                        "new content"
+                    );
+                    await awsTestSession.deleteS3ObjectAsync(
+                        s3Bucket as string,
+                        "object-to-be-deleted"
+                    );
+
+                    const s3Folder = S3Folder.fromUrl(
+                        `s3://${s3Bucket}`,
+                        awsTestSession.s3Client,
+                        1000
+                    );
+
+                    const s3Object = (
+                        await s3Folder.listLatestItemVersionsAsync(
+                            /^object-to-be-deleted$/
+                        )
+                    )[0];
+
+                    expect(s3Object).to.not.be.undefined;
+                    expect(s3Object.isDeleted).to.be.true;
+
+                    await s3Object.setTagsAsync([
+                        { key: "a", value: "a-value" },
+                        { key: "b", value: "b-value" },
+                    ]);
+
+                    const gotTags = await s3Object.getTagsAsync();
+
+                    expect(gotTags).to.have.deep.members([
+                        { key: "a", value: "a-value" },
+                        { key: "b", value: "b-value" },
                     ]);
                 })
             );

@@ -11,6 +11,8 @@ interface FolderItemInterface {
 
     get version(): string;
 
+    get isDeleted(): boolean;
+
     getTagsAsync(): Promise<{ key: string; value: string }[]>;
 
     setTagsAsync(tags: { key: string; value: string }[]): Promise<void>;

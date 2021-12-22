@@ -27,6 +27,9 @@ class StubFolderItem implements FolderItemInterface {
     get version(): string {
         return "";
     }
+    get isDeleted(): boolean {
+        return false;
+    }
     getTagsAsync(): Promise<{ key: string; value: string }[]> {
         return Promise.resolve([]);
     }

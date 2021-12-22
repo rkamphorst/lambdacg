@@ -123,6 +123,15 @@ class AwsTestSession {
             .promise();
     }
 
+    async deleteS3ObjectAsync(s3Bucket: string, key: string): Promise<void> {
+        await this.#s3Client
+            .deleteObject({
+                Bucket: s3Bucket,
+                Key: key,
+            })
+            .promise();
+    }
+
     async createLambdaAsync(zipFileContents: Buffer) {
         const functionName = this.#generateName();
 
