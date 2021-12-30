@@ -1,11 +1,13 @@
 import { expect } from "chai";
 import { npmInstallAsync } from "lambdacg-updater/npm-utils";
 import { ResolverPackage } from "lambdacg-updater/resolver-package";
+import { HandlerTarballInterface } from "lambdacg-updater/updater-contract";
 import mockFs from "mock-fs";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { Readable } from "node:stream";
 import unzipper from "unzipper";
 
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
@@ -20,6 +22,23 @@ import { isWriteStreamFinishedAsync } from "./lib/stream-utils";
 const logger = getLogger();
 
 const dataDir = path.join(__dirname, "data", "resolver-package.test");
+
+class StubHandlerTarball implements HandlerTarballInterface {
+    #name: string;
+    #stream: () => Readable;
+
+    constructor(name: string, stream: () => Readable) {
+        this.#name = name;
+        this.#stream = stream;
+    }
+
+    get name(): string {
+        return this.#name;
+    }
+    getDownloadStream(): Readable {
+        return this.#stream();
+    }
+}
 
 describe("ResolverPackage", function () {
     const getMyPackageStream = () =>
@@ -93,17 +112,20 @@ describe("ResolverPackage", function () {
                         npmInstallAsync
                     );
 
-                    sut.addHandlerFromTarballStream(
-                        "MyModule.tar.gz",
-                        getModuleStream("my-module.tgz")
+                    sut.addHandlerTarball(
+                        new StubHandlerTarball("MyModule.tar.gz", () =>
+                            getModuleStream("my-module.tgz")
+                        )
                     );
-                    sut.addHandlerFromTarballStream(
-                        "HerModule.tar.gz",
-                        getModuleStream("her-module.tgz")
+                    sut.addHandlerTarball(
+                        new StubHandlerTarball("HerModule.tar.gz", () =>
+                            getModuleStream("her-module.tgz")
+                        )
                     );
-                    sut.addHandlerFromTarballStream(
-                        "HisModule.tar.gz",
-                        getModuleStream("his-module.tgz")
+                    sut.addHandlerTarball(
+                        new StubHandlerTarball("HisModule.tar.gz", () =>
+                            getModuleStream("his-module.tgz")
+                        )
                     );
 
                     await isWriteStreamFinishedAsync(
@@ -152,9 +174,10 @@ describe("ResolverPackage", function () {
                         npmInstallAsync
                     );
 
-                    sut.addHandlerFromTarballStream(
-                        "MyModule.tar.gz",
-                        getModuleStream("my-module.tgz")
+                    sut.addHandlerTarball(
+                        new StubHandlerTarball("MyModule.tar.gz", () =>
+                            getModuleStream("my-module.tgz")
+                        )
                     );
 
                     await isWriteStreamFinishedAsync(
@@ -184,17 +207,20 @@ describe("ResolverPackage", function () {
                         npmInstallAsync
                     );
 
-                    sut.addHandlerFromTarballStream(
-                        "MyModule.tar.gz",
-                        getModuleStream("my-module.tgz")
+                    sut.addHandlerTarball(
+                        new StubHandlerTarball("MyModule.tar.gz", () =>
+                            getModuleStream("my-module.tgz")
+                        )
                     );
-                    sut.addHandlerFromTarballStream(
-                        "HerModule.tar.gz",
-                        getModuleStream("her-module.tgz")
+                    sut.addHandlerTarball(
+                        new StubHandlerTarball("HerModule.tar.gz", () =>
+                            getModuleStream("her-module.tgz")
+                        )
                     );
-                    sut.addHandlerFromTarballStream(
-                        "HisModule.tar.gz",
-                        getModuleStream("his-module.tgz")
+                    sut.addHandlerTarball(
+                        new StubHandlerTarball("HisModule.tar.gz", () =>
+                            getModuleStream("his-module.tgz")
+                        )
                     );
 
                     await isWriteStreamFinishedAsync(
@@ -245,9 +271,10 @@ describe("ResolverPackage", function () {
                     Promise.resolve()
                 );
 
-                sut.addHandlerFromTarballStream(
-                    "MyModule.tar.gz",
-                    getModuleStream("my-module.tgz")
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("MyModule.tar.gz", () =>
+                        getModuleStream("my-module.tgz")
+                    )
                 );
 
                 await isWriteStreamFinishedAsync(

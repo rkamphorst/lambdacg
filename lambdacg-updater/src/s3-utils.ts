@@ -1,3 +1,6 @@
+type BucketPrefix = { Bucket: string; Prefix: string | undefined };
+type BucketKey = { Bucket: string; Key: string };
+
 const getBucketAndPrefixOrKeyFromS3Url = (
     s3Url: string
 ): { Bucket: string; PrefixOrKey: string | undefined } => {
@@ -51,4 +54,9 @@ const getBucketAndKeyFromS3ObjectUrl = (
     };
 };
 
-export { getBucketAndKeyFromS3ObjectUrl, getBucketAndPrefixFromS3FolderUrl };
+export {
+    BucketKey,
+    BucketPrefix,
+    getBucketAndKeyFromS3ObjectUrl,
+    getBucketAndPrefixFromS3FolderUrl,
+};

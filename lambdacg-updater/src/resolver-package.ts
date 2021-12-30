@@ -11,7 +11,10 @@ import {
     TemporaryNpmTarball,
 } from "./npm-utils";
 import { unpackNpmPackageContentsInTarball } from "./unpack";
-import { ResolverPackageInterface } from "./updater-contract";
+import {
+    HandlerTarballInterface,
+    ResolverPackageInterface,
+} from "./updater-contract";
 
 class ResolverPackage implements ResolverPackageInterface {
     #directoryPromise: Promise<string> | undefined;
@@ -35,30 +38,25 @@ class ResolverPackage implements ResolverPackageInterface {
         this.#npmInstallAsync = npmInstallAsync;
     }
 
-    addHandlerFromTarballStream(
-        tarballName: string,
-        tarballStream: Readable
-    ): void {
+    addHandlerTarball(tarball: HandlerTarballInterface): void {
         if (
             this.#addModulePromises.findIndex(
-                (x) => x.tarballName.toUpperCase() == tarballName.toUpperCase()
+                (x) => x.tarballName === tarball.name
             ) >= 0
         ) {
             throw new Error(
-                `A tarball with name ${tarballName} was already added`
+                `A tarball with name ${tarball.name} was already added`
             );
         }
         this.#addModulePromises.push({
-            tarballName,
+            tarballName: tarball.name,
             promise: this.#saveTarballToTemporaryDirectoryAsync(
-                tarballName,
-                tarballStream
+                tarball.getDownloadStream()
             ),
         });
     }
 
     async #saveTarballToTemporaryDirectoryAsync(
-        tarballName: string,
         tarballStream: Readable
     ): Promise<TemporaryNpmTarball> {
         if (!this.#directoryPromise) {
@@ -74,8 +72,11 @@ class ResolverPackage implements ResolverPackageInterface {
     async createLambdaCodeZipStreamAsync(): Promise<Readable> {
         const result = new PassThrough();
 
-        // we don't have to await the following  async call,
-        // as it will be "awaited" by the stream reader
+        // we could have just kicked this off and returned
+        // the stream without awaiting.
+        // however, that could cause a timeout on any writable
+        // on the other end; therefore, we first await the
+        // packaging and then return the stream.
         await this.#packageAndZipToStreamAsync(result);
 
         return result;

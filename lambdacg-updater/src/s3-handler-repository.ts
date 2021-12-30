@@ -1,0 +1,541 @@
+import { AWSError, S3 } from "aws-sdk";
+import { PromiseResult } from "aws-sdk/lib/request";
+import { Readable } from "node:stream";
+
+import {
+    BucketKey,
+    BucketPrefix,
+    getBucketAndPrefixFromS3FolderUrl,
+} from "./s3-utils";
+import {
+    HandlerRepositoryInterface,
+    HandlerTarballInterface,
+} from "./updater-contract";
+
+const ObjectChange: unique symbol = Symbol("lambdacg-update");
+const ObjectDeletion: unique symbol = Symbol("lambdacg-deletion");
+
+type BucketKeyVersion = BucketKey & { VersionId: string };
+
+type UpdateType = typeof ObjectChange | typeof ObjectDeletion;
+type UpdateMark = {
+    Update: UpdateType;
+    Mark: string;
+};
+
+class S3HandlerRepository implements HandlerRepositoryInterface {
+    static fromUrl(
+        s3FolderUrl: string,
+        s3Client?: S3,
+        maxKeysPerInvocation?: number
+    ): S3HandlerRepository {
+        const bucketAndPrefix = getBucketAndPrefixFromS3FolderUrl(s3FolderUrl);
+        return new S3HandlerRepository(
+            bucketAndPrefix,
+            s3Client ?? new S3(),
+            maxKeysPerInvocation ?? 1000
+        );
+    }
+
+    #bucketAndPrefix: BucketPrefix;
+    #maxKeysPerInvocation: number;
+    #s3Client: S3;
+    #s3Objects: { [key: string]: S3HandlerTarball };
+    #initializePromise: Promise<void> | undefined;
+    #isInitialized: boolean;
+    #updateMark: string | undefined;
+
+    constructor(
+        bucketAndPrefix: BucketPrefix,
+        s3Client: S3,
+        maxKeysPerInvocation = 1000
+    ) {
+        this.#bucketAndPrefix = bucketAndPrefix;
+        this.#maxKeysPerInvocation = maxKeysPerInvocation;
+        this.#s3Client = s3Client;
+        this.#s3Objects = {};
+        this.#initializePromise = undefined;
+        this.#isInitialized = false;
+    }
+
+    initializeAsync(): Promise<void> {
+        const internalInitializeAsync = async () => {
+            await this.#foreachTgzVersionAsync(
+                (v) => this.#getOrCreateS3HandlerTarball(v.Key).addVersion(v),
+                (d) =>
+                    this.#getOrCreateS3HandlerTarball(d.Key).addDeleteMarker(d)
+            );
+
+            // remove s3 objects that do not have complete version info
+            for (const s3Obj of Object.values(this.#s3Objects)) {
+                if (!s3Obj.hasCompleteVersionInfo()) {
+                    delete this.#s3Objects[s3Obj.url];
+                }
+            }
+
+            this.#isInitialized = true;
+            this.#updateMark = await this.#getUpdateMarkAsync();
+        };
+        if (this.#initializePromise === undefined) {
+            this.#initializePromise = internalInitializeAsync();
+        }
+        return this.#initializePromise;
+    }
+
+    #getOrCreateS3HandlerTarball(key: string | undefined): S3HandlerTarball {
+        if (key === undefined) {
+            throw new Error("Key not set");
+        }
+
+        const s3Obj = new S3HandlerTarball(
+            { Bucket: this.#bucketAndPrefix.Bucket, Key: key },
+            this.#s3Client
+        );
+
+        if (s3Obj.url in this.#s3Objects) {
+            return this.#s3Objects[s3Obj.url];
+        }
+        this.#s3Objects[s3Obj.url] = s3Obj;
+        return s3Obj;
+    }
+
+    async #foreachTgzVersionAsync(
+        objectVersionCallback: (v: S3.ObjectVersion) => void,
+        deleteMarkerCallback: (v: S3.DeleteMarkerEntry) => void
+    ) {
+        let continuationToken:
+            | {
+                  KeyMarker: string | undefined;
+                  VersionIdMarker: string | undefined;
+              }
+            | undefined = undefined;
+
+        do {
+            const listVersionsResult: PromiseResult<
+                S3.ListObjectVersionsOutput,
+                AWSError
+            > = await this.#s3Client
+                .listObjectVersions({
+                    ...this.#bucketAndPrefix,
+                    ...continuationToken,
+                    MaxKeys: this.#maxKeysPerInvocation,
+                })
+                .promise();
+
+            listVersionsResult.Versions?.filter((v) =>
+                this.#selectTgz(v)
+            ).forEach(objectVersionCallback);
+            listVersionsResult.DeleteMarkers?.filter((d) =>
+                this.#selectTgz(d)
+            ).forEach(deleteMarkerCallback);
+
+            if (listVersionsResult.IsTruncated) {
+                continuationToken = {
+                    KeyMarker: listVersionsResult.NextKeyMarker,
+                    VersionIdMarker: listVersionsResult.NextVersionIdMarker,
+                };
+            } else {
+                continuationToken = undefined;
+            }
+        } while (continuationToken);
+    }
+
+    #selectTgz(obj: S3.ObjectVersion | S3.DeleteMarkerEntry): boolean {
+        const filename = obj.Key?.substr(
+            this.#bucketAndPrefix.Prefix?.length ?? 0
+        );
+
+        return (
+            !!filename &&
+            filename.length > 0 &&
+            filename.indexOf("/") < 0 &&
+            /(\.tgz|\.tar\.gz)$/.test(filename)
+        );
+    }
+
+    async #getUpdateMarkAsync(): Promise<string | undefined> {
+        const marks = await Promise.all(
+            Object.values(this.#s3Objects).map((o) => o.getUpdateMarkAsync())
+        );
+
+        if (marks.length > 0) {
+            // sort descending starting with undefined
+            marks.sort((a: string | undefined, b: string | undefined) => {
+                if (a === undefined) {
+                    return -1;
+                }
+                if (b === undefined) {
+                    return 1;
+                }
+                if (a > b) {
+                    return -1;
+                }
+                return 1;
+            });
+            return marks[0];
+        }
+        return undefined;
+    }
+
+    get isUpToDate(): boolean {
+        this.#assertIsInitialized();
+        return this.#updateMark !== undefined;
+    }
+
+    get updateMark(): string | undefined {
+        this.#assertIsInitialized();
+        return this.#updateMark;
+    }
+
+    get tarballs(): S3HandlerTarball[] {
+        this.#assertIsInitialized();
+        return Object.values(this.#s3Objects).filter((o) => !o.isDeleted);
+    }
+
+    async markUpdatedAsync(): Promise<string> {
+        this.#assertIsInitialized();
+        const updateMark = new Date().toISOString();
+
+        await Promise.all(
+            Object.values(this.#s3Objects).map((o) =>
+                o.markUpdatedAsync(updateMark)
+            )
+        );
+
+        this.#updateMark = updateMark;
+        return updateMark;
+    }
+
+    #assertIsInitialized() {
+        if (!this.#isInitialized) {
+            throw new Error("You need to call initialize first");
+        }
+    }
+}
+
+class S3HandlerTarball implements HandlerTarballInterface {
+    #s3Client: S3;
+    #bucketAndKey: BucketKey;
+    #latestVersion:
+        | { VersionId: string; LastModified: Date; IsDeleteMarker: boolean }
+        | undefined;
+    #previousDeleteMarker:
+        | { VersionId: string; LastModified: Date }
+        | undefined;
+    #previousObjectVersion:
+        | { VersionId: string; LastModified: Date }
+        | undefined;
+    #updateMarkPromise: Promise<string | undefined> | undefined;
+
+    constructor(bucketAndKey: BucketKey, s3Client: S3) {
+        this.#s3Client = s3Client;
+        this.#bucketAndKey = bucketAndKey;
+        this.#latestVersion = undefined;
+        this.#previousObjectVersion = undefined;
+        this.#previousDeleteMarker = undefined;
+    }
+
+    get url(): string {
+        return `s3://${this.#bucketAndKey.Bucket}/${this.#bucketAndKey.Key}`;
+    }
+
+    addVersion(objectVersion: S3.ObjectVersion) {
+        if (objectVersion.IsLatest) {
+            this.#setLatestVersion(
+                objectVersion.VersionId,
+                objectVersion.LastModified,
+                false
+            );
+        } else {
+            this.#updatePreviousObjectVersion(
+                objectVersion.VersionId,
+                objectVersion.LastModified
+            );
+        }
+    }
+
+    addDeleteMarker(deleteMarker: S3.DeleteMarkerEntry) {
+        if (deleteMarker.IsLatest) {
+            this.#setLatestVersion(
+                deleteMarker.VersionId,
+                deleteMarker.LastModified,
+                true
+            );
+        } else {
+            this.#updatePreviousDeleteMarker(
+                deleteMarker.VersionId,
+                deleteMarker.LastModified
+            );
+        }
+    }
+
+    hasCompleteVersionInfo(errorCallback?: (message: string) => void): boolean {
+        const emit = (message: string) => {
+            if (errorCallback) {
+                errorCallback(message);
+            }
+        };
+
+        if (!this.#latestVersion) {
+            emit("Latest version not set");
+            return false;
+        }
+
+        if (this.#latestVersion.IsDeleteMarker) {
+            if (!this.#previousObjectVersion) {
+                emit("Latest is delete marker, but no previous version found");
+                return false;
+            }
+
+            if (
+                this.#previousDeleteMarker &&
+                this.#previousDeleteMarker.LastModified >
+                    this.#previousObjectVersion.LastModified
+            ) {
+                emit(
+                    "Latest is delete marker, but previous is also delete marker"
+                );
+                return false;
+            }
+        }
+        return true;
+    }
+
+    #setLatestVersion(
+        versionId: string | undefined,
+        lastModified: Date | undefined,
+        isDeleteMarker: boolean
+    ) {
+        if (!versionId) {
+            throw new Error("Version ID not given");
+        }
+        if (!lastModified) {
+            throw new Error("Last Modified (timestamp) not given");
+        }
+        if (this.#latestVersion !== undefined) {
+            throw new Error(
+                `Latest object version already set for ${this.url}: ${
+                    this.#latestVersion
+                }`
+            );
+        }
+
+        this.#latestVersion = {
+            LastModified: lastModified,
+            VersionId: versionId,
+            IsDeleteMarker: isDeleteMarker,
+        };
+    }
+
+    #updatePreviousObjectVersion(
+        versionId: string | undefined,
+        lastModified: Date | undefined
+    ) {
+        if (lastModified === undefined || versionId === undefined) {
+            return;
+        }
+
+        if (
+            this.#previousObjectVersion === undefined ||
+            this.#previousObjectVersion.LastModified < lastModified
+        ) {
+            this.#previousObjectVersion = {
+                LastModified: lastModified,
+                VersionId: versionId,
+            };
+        }
+    }
+
+    #updatePreviousDeleteMarker(
+        versionId: string | undefined,
+        lastModified: Date | undefined
+    ) {
+        if (lastModified === undefined || versionId === undefined) {
+            return;
+        }
+
+        if (
+            this.#previousDeleteMarker === undefined ||
+            this.#previousDeleteMarker.LastModified < lastModified
+        ) {
+            this.#previousDeleteMarker = {
+                LastModified: lastModified,
+                VersionId: versionId,
+            };
+        }
+    }
+
+    #getLatestObjectVersionOrThrow() {
+        if (this.#latestVersion === undefined) {
+            throw new Error("No latest version");
+        }
+
+        if (this.#latestVersion.IsDeleteMarker) {
+            throw new Error("Latest version is a delete marker");
+        }
+        return this.#latestVersion;
+    }
+
+    #getPreviousObjectVersionOrThrow() {
+        if (!this.#previousObjectVersion) {
+            throw new Error("No previous version");
+        }
+
+        if (this.#isPreviousDeleted) {
+            throw new Error("Previous version is a delete marker");
+        }
+
+        return this.#previousObjectVersion;
+    }
+
+    #getPreviousObjectVersionOrUndefined() {
+        if (this.#isPreviousDeleted) {
+            return undefined;
+        }
+        return this.#previousObjectVersion;
+    }
+
+    #getLatestObjectBucketKeyVersionOrThrow(): BucketKeyVersion {
+        return {
+            ...this.#bucketAndKey,
+            VersionId: this.#getLatestObjectVersionOrThrow().VersionId,
+        };
+    }
+
+    #getPreviousObjectBucketKeyVersionOrThrow(): BucketKeyVersion {
+        return {
+            ...this.#bucketAndKey,
+            VersionId: this.#getPreviousObjectVersionOrThrow().VersionId,
+        };
+    }
+
+    #getPreviousObjectBucketKeyVersionOrUndefined():
+        | BucketKeyVersion
+        | undefined {
+        const versionId =
+            this.#getPreviousObjectVersionOrUndefined()?.VersionId;
+        if (versionId !== undefined) {
+            return { ...this.#bucketAndKey, VersionId: versionId };
+        }
+        return undefined;
+    }
+
+    get isDeleted(): boolean {
+        if (!this.#latestVersion) {
+            throw new Error("No latest versino");
+        }
+        return this.#latestVersion.IsDeleteMarker;
+    }
+
+    get #isPreviousDeleted(): boolean | undefined {
+        if (this.#previousDeleteMarker && this.#previousObjectVersion) {
+            if (
+                this.#previousDeleteMarker.LastModified >
+                this.#previousObjectVersion.LastModified
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    get name(): string {
+        const key = this.#bucketAndKey.Key;
+        return key.substring(key.lastIndexOf("/") + 1);
+    }
+
+    getUpdateMarkAsync(): Promise<string | undefined> {
+        const internalGetUpdateMarkAsync = async () => {
+            const params:
+                | { Update: UpdateType; TagBucketKeyVersion: BucketKeyVersion }
+                | undefined = this.isDeleted
+                ? {
+                      Update: ObjectDeletion,
+                      TagBucketKeyVersion:
+                          this.#getPreviousObjectBucketKeyVersionOrThrow(),
+                  }
+                : {
+                      Update: ObjectChange,
+                      TagBucketKeyVersion:
+                          this.#getLatestObjectBucketKeyVersionOrThrow(),
+                  };
+
+            const tags = await this.#s3Client
+                .getObjectTagging({
+                    ...params.TagBucketKeyVersion,
+                })
+                .promise();
+
+            return tags.TagSet.find((t) => t.Key === params.Update.description)
+                ?.Value;
+        };
+
+        if (this.#updateMarkPromise === undefined) {
+            this.#updateMarkPromise = internalGetUpdateMarkAsync();
+        }
+        return this.#updateMarkPromise;
+    }
+
+    async markUpdatedAsync(updateMark: string) {
+        if (!this.isDeleted) {
+            await Promise.all([
+                this.#setUpdateMarkAsync(
+                    this.#getLatestObjectBucketKeyVersionOrThrow(),
+                    { Update: ObjectChange, Mark: updateMark }
+                ),
+                this.#clearUpdateMarkAsync(
+                    this.#getPreviousObjectBucketKeyVersionOrUndefined()
+                ),
+            ]);
+        } else {
+            await this.#setUpdateMarkAsync(
+                this.#getPreviousObjectBucketKeyVersionOrThrow(),
+                { Update: ObjectDeletion, Mark: updateMark }
+            );
+        }
+        this.#updateMarkPromise = Promise.resolve(updateMark);
+    }
+
+    #setUpdateMarkAsync(
+        bucketKeyVersion: BucketKeyVersion,
+        updateMark: UpdateMark
+    ) {
+        return this.#s3Client
+            .putObjectTagging({
+                ...bucketKeyVersion,
+                Tagging: {
+                    TagSet: [
+                        {
+                            Key: updateMark.Update.description as string,
+                            Value: updateMark.Mark,
+                        },
+                    ],
+                },
+            })
+            .promise();
+    }
+
+    async #clearUpdateMarkAsync(
+        bucketKeyVersion: BucketKeyVersion | undefined
+    ) {
+        if (bucketKeyVersion === undefined) {
+            return Promise.resolve();
+        }
+        return this.#s3Client
+            .putObjectTagging({
+                ...bucketKeyVersion,
+                Tagging: {
+                    TagSet: [],
+                },
+            })
+            .promise();
+    }
+
+    getDownloadStream(): Readable {
+        return this.#s3Client
+            .getObject({ ...this.#getLatestObjectBucketKeyVersionOrThrow() })
+            .createReadStream();
+    }
+}
+
+export { S3HandlerRepository, S3HandlerTarball };

@@ -1,22 +1,23 @@
 import { Readable } from "node:stream";
 
 interface HandlerRepositoryInterface {
-    initializeWithLatestVersionsAsync(): Promise<void>;
+    initializeAsync(): Promise<void>;
 
-    hasModulesToUpdate(): boolean;
+    get isUpToDate(): boolean;
 
-    getHandlerTarballStreamsAsync(): Promise<
-        { tarballName: string; stream: Readable }[]
-    >;
+    get tarballs(): HandlerTarballInterface[];
 
-    markUpdatesAsync(updateMarker: string): Promise<void>;
+    markUpdatedAsync(): Promise<string>;
+}
+
+interface HandlerTarballInterface {
+    get name(): string;
+
+    getDownloadStream(): Readable;
 }
 
 interface ResolverPackageInterface {
-    addHandlerFromTarballStream(
-        tarballName: string,
-        tarballStream: Readable
-    ): void;
+    addHandlerTarball(handlerTarball: HandlerTarballInterface): void;
 
     createLambdaCodeZipStreamAsync(): Promise<Readable>;
 
@@ -29,6 +30,7 @@ interface UpdaterInterface {
 
 export {
     HandlerRepositoryInterface,
+    HandlerTarballInterface,
     ResolverPackageInterface,
     UpdaterInterface,
 };
