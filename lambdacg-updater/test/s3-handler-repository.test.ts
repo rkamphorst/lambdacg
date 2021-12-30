@@ -19,7 +19,7 @@ const packageFileNames = [
 describe("S3HandlerRepository", async function () {
     describeClass({ S3HandlerRepository }, function () {
         describe("fromUrl", function () {
-            it("Should throw for URL s3://[s3Bucket]/prefix", async function () {
+            it("Should throw for URL s3://s3Bucket/prefix", async function () {
                 const s3ClientStub = new S3ClientStub();
                 await expectToThrowAsync(() =>
                     S3HandlerRepository.fromUrl(
@@ -28,7 +28,7 @@ describe("S3HandlerRepository", async function () {
                     )
                 );
             });
-            it("Should be successful for URL s3://[s3Bucket]/prefix/", async function () {
+            it("Should be successful for URL s3://s3Bucket/prefix/", async function () {
                 const s3ClientStub = new S3ClientStub();
                 const s3Folder = S3HandlerRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
@@ -40,7 +40,7 @@ describe("S3HandlerRepository", async function () {
         });
 
         describeMember<S3HandlerRepository>("initializeAsync", function () {
-            it("Should fetch package tarball list in s3://[s3Bucket]/prefix/ in one batch", async function () {
+            it("Should fetch package tarball list in s3://s3Bucket/prefix/ in one batch", async function () {
                 const s3ClientStub = new S3ClientStub();
 
                 s3ClientStub.setupListObjectVersions(
@@ -67,7 +67,7 @@ describe("S3HandlerRepository", async function () {
                 );
             });
 
-            it("Should fetch package tarball list in s3://[s3Bucket]/prefix/ in multiple batches", async function () {
+            it("Should fetch package tarball list in s3://s3Bucket/prefix/ in multiple batches", async function () {
                 const s3ClientStub = new S3ClientStub();
 
                 s3ClientStub.setupListObjectVersions(
@@ -94,7 +94,7 @@ describe("S3HandlerRepository", async function () {
                 );
             });
 
-            it("Should fetch package tarball list in s3://[s3Bucket]/", async function () {
+            it("Should fetch package tarball list in s3://s3Bucket/", async function () {
                 const s3ClientStub = new S3ClientStub();
 
                 s3ClientStub.setupListObjectVersions(
@@ -123,7 +123,7 @@ describe("S3HandlerRepository", async function () {
                 );
             });
 
-            it("Should fetch package tarball list in s3://[s3Bucket]", async function () {
+            it("Should fetch package tarball list in s3://s3Bucket", async function () {
                 const s3ClientStub = new S3ClientStub();
 
                 s3ClientStub.setupListObjectVersions(
@@ -156,7 +156,7 @@ describe("S3HandlerRepository", async function () {
 
     describeClass({ S3HandlerTarball }, function () {
         describe("constructor", function () {
-            it("Should throw for URL s3://[s3Bucket]/object/key/", async function () {
+            it("Should throw for URL s3://s3Bucket/object/key/", async function () {
                 const s3ClientStub = new S3ClientStub();
                 await expectToThrowAsync(
                     () =>
@@ -166,7 +166,7 @@ describe("S3HandlerRepository", async function () {
                         )
                 );
             });
-            it("Should be successful for URL s3://[s3Bucket]/object/key", async function () {
+            it("Should be successful for URL s3://s3Bucket/object/key", async function () {
                 const s3ClientStub = new S3ClientStub();
                 const s3Object = new S3HandlerTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
