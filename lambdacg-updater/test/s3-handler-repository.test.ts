@@ -112,9 +112,7 @@ describe("S3HandlerRepository", async function () {
                 const result = s3Folder.tarballs;
 
                 expect(result).to.not.be.null;
-                expect(result.length).to.be.equal(
-                    packageFileNames.length
-                );
+                expect(result.length).to.be.equal(packageFileNames.length);
                 result.forEach((o) =>
                     expect(o).to.be.instanceOf(S3HandlerTarball)
                 );
@@ -141,9 +139,7 @@ describe("S3HandlerRepository", async function () {
                 const result = s3Folder.tarballs;
 
                 expect(result).to.not.be.null;
-                expect(result.length).to.be.equal(
-                    packageFileNames.length
-                );
+                expect(result.length).to.be.equal(packageFileNames.length);
                 result.forEach((o) =>
                     expect(o).to.be.instanceOf(S3HandlerTarball)
                 );
@@ -281,9 +277,7 @@ describe("S3HandlerRepository", async function () {
 
                 s3Object.markUpdatedAsync("update-mark");
 
-                sinon.assert.calledOnce(
-                    s3ClientStub.object.putObjectTagging
-                );
+                sinon.assert.calledOnce(s3ClientStub.object.putObjectTagging);
                 sinon.assert.calledWith(
                     s3ClientStub.object.putObjectTagging,
                     sinon.match(
