@@ -30,12 +30,12 @@ describe("S3HandlerRepository", async function () {
             });
             it("Should be successful for URL s3://s3Bucket/prefix/", async function () {
                 const s3ClientStub = new S3ClientStub();
-                const s3Folder = S3HandlerRepository.fromUrl(
+                const s3Repo = S3HandlerRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientStub.object
                 );
-                expect(s3Folder).to.not.be.null;
-                expect(s3Folder).to.be.instanceOf(S3HandlerRepository);
+                expect(s3Repo).to.not.be.null;
+                expect(s3Repo).to.be.instanceOf(S3HandlerRepository);
             });
         });
 
@@ -49,13 +49,13 @@ describe("S3HandlerRepository", async function () {
                 );
                 s3ClientStub.setupGetObjectTagging({});
 
-                const s3Folder = S3HandlerRepository.fromUrl(
+                const s3Repo = S3HandlerRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientStub.object
                 );
 
-                await s3Folder.initializeAsync();
-                const result = s3Folder.tarballs;
+                await s3Repo.initializeAsync();
+                const result = s3Repo.tarballs;
 
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(3);
@@ -76,13 +76,13 @@ describe("S3HandlerRepository", async function () {
                 );
                 s3ClientStub.setupGetObjectTagging({});
 
-                const s3Folder = S3HandlerRepository.fromUrl(
+                const s3Repo = S3HandlerRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientStub.object
                 );
 
-                await s3Folder.initializeAsync();
-                const result = s3Folder.tarballs;
+                await s3Repo.initializeAsync();
+                const result = s3Repo.tarballs;
 
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(3);
@@ -103,13 +103,13 @@ describe("S3HandlerRepository", async function () {
                 );
                 s3ClientStub.setupGetObjectTagging({});
 
-                const s3Folder = S3HandlerRepository.fromUrl(
+                const s3Repo = S3HandlerRepository.fromUrl(
                     `s3://s3Bucket/`,
                     s3ClientStub.object
                 );
 
-                await s3Folder.initializeAsync();
-                const result = s3Folder.tarballs;
+                await s3Repo.initializeAsync();
+                const result = s3Repo.tarballs;
 
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(packageFileNames.length);
@@ -130,13 +130,13 @@ describe("S3HandlerRepository", async function () {
                 );
                 s3ClientStub.setupGetObjectTagging({});
 
-                const s3Folder = S3HandlerRepository.fromUrl(
+                const s3Repo = S3HandlerRepository.fromUrl(
                     `s3://s3Bucket`,
                     s3ClientStub.object
                 );
 
-                await s3Folder.initializeAsync();
-                const result = s3Folder.tarballs;
+                await s3Repo.initializeAsync();
+                const result = s3Repo.tarballs;
 
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(packageFileNames.length);
@@ -146,6 +146,116 @@ describe("S3HandlerRepository", async function () {
                 expect(result.map((o) => o.name)).to.have.deep.members(
                     packageFileNames
                 );
+            });
+
+            it("Should execute only once", async function () {
+                const s3ClientStub = new S3ClientStub();
+
+                s3ClientStub.setupListObjectVersions(
+                    undefined,
+                    packageFileNames.map((n) => `${n}`)
+                );
+                s3ClientStub.setupGetObjectTagging({});
+
+                const s3Repo = S3HandlerRepository.fromUrl(
+                    `s3://s3Bucket`,
+                    s3ClientStub.object
+                );
+
+                const promise1 = s3Repo.initializeAsync();
+
+                await promise1;
+
+                const promise2 = s3Repo.initializeAsync();
+
+                expect(
+                    promise1 === promise2,
+                    "The same promise is returned"
+                ).to.be.true;
+            });
+
+            it("Should drop tarballs that have incomplete version info", async function () {
+                const s3ClientStub = new S3ClientStub();
+
+                s3ClientStub.setupListObjectVersions(undefined, [
+                    packageFileNames[0],
+                    {
+                        Key: packageFileNames[1],
+                        VersionId: "not-latest",
+                        IsLatest: false,
+                    },
+                    packageFileNames[2],
+                ]);
+                s3ClientStub.setupGetObjectTagging({});
+
+                const s3Repo = S3HandlerRepository.fromUrl(
+                    `s3://s3Bucket`,
+                    s3ClientStub.object
+                );
+
+                await s3Repo.initializeAsync();
+                const result = s3Repo.tarballs;
+
+                expect(result).to.not.be.null;
+                expect(result.length).to.be.equal(2);
+                result.forEach((o) =>
+                    expect(o).to.be.instanceOf(S3HandlerTarball)
+                );
+                expect(result.map((o) => o.name)).to.have.deep.members([
+                    packageFileNames[0],
+                    packageFileNames[2],
+                ]);
+            });
+
+            it("Should assume the latest set update mark on tarballs", async function () {
+                const s3ClientStub = new S3ClientStub();
+
+                s3ClientStub.setupListObjectVersions(undefined, [
+                    packageFileNames[0],
+                    packageFileNames[1],
+                ]);
+                s3ClientStub.setupGetObjectTagging(
+                    { "lambdacg-update": "version1" },
+                    packageFileNames[0]
+                );
+                s3ClientStub.setupGetObjectTagging(
+                    { "lambdacg-update": "version2" },
+                    packageFileNames[1]
+                );
+
+                const s3Repo = S3HandlerRepository.fromUrl(
+                    `s3://s3Bucket`,
+                    s3ClientStub.object
+                );
+
+                await s3Repo.initializeAsync();
+                const result = s3Repo.updateMark;
+
+                expect(result).to.be.equal("version2");
+            });
+
+            it("Should assume undefined version if any tarball has undefined version", async function () {
+                const s3ClientStub = new S3ClientStub();
+
+                s3ClientStub.setupListObjectVersions(undefined, [
+                    packageFileNames[0],
+                    packageFileNames[1],
+                ]);
+                s3ClientStub.setupGetObjectTagging({}, packageFileNames[0]);
+                s3ClientStub.setupGetObjectTagging(
+                    { "lambdacg-update": "version2" },
+                    packageFileNames[1]
+                );
+
+                const s3Repo = S3HandlerRepository.fromUrl(
+                    `s3://s3Bucket`,
+                    s3ClientStub.object
+                );
+
+                await s3Repo.initializeAsync();
+                const result = s3Repo.updateMark;
+
+                expect(result).to.be.undefined;
             });
         });
     });
@@ -256,7 +366,7 @@ describe("S3HandlerRepository", async function () {
 
             it("Should only mark previous version if deleted", async function () {
                 const s3ClientStub = new S3ClientStub();
-                s3ClientStub.setupPutObjectTagging();
+                const spy = s3ClientStub.setupPutObjectTagging();
                 const s3Object = new S3HandlerTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientStub.object
@@ -277,9 +387,9 @@ describe("S3HandlerRepository", async function () {
 
                 s3Object.markUpdatedAsync("update-mark");
 
-                sinon.assert.calledOnce(s3ClientStub.object.putObjectTagging);
+                sinon.assert.calledOnce(spy);
                 sinon.assert.calledWith(
-                    s3ClientStub.object.putObjectTagging,
+                    spy,
                     sinon.match(
                         (r: S3.PutObjectTaggingRequest) =>
                             r.Key == "object/key" &&
@@ -302,13 +412,13 @@ describe("S3HandlerRepository", async function () {
                 s3ClientStub.setupGetObjectTagging({});
                 s3ClientStub.setupGetObject("content-of-object");
 
-                const s3Folder = S3HandlerRepository.fromUrl(
+                const s3Repo = S3HandlerRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientStub.object
                 );
 
-                await s3Folder.initializeAsync();
-                const s3Object = s3Folder.tarballs.filter(
+                await s3Repo.initializeAsync();
+                const s3Object = s3Repo.tarballs.filter(
                     (x) => x.name == "tar.gz.file.tar.gz"
                 )[0];
 

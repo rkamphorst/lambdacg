@@ -158,23 +158,19 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
             Object.values(this.#s3Objects).map((o) => o.getUpdateMarkAsync())
         );
 
-        if (marks.length > 0) {
-            // sort descending starting with undefined
-            marks.sort((a: string | undefined, b: string | undefined) => {
-                if (a === undefined) {
-                    return -1;
-                }
-                if (b === undefined) {
-                    return 1;
-                }
-                if (a > b) {
-                    return -1;
-                }
-                return 1;
-            });
-            return marks[0];
+        let result: string | undefined = undefined;
+        for (const mark of marks) {
+            if (mark === undefined) {
+                // any undefined update mark on one of the objects
+                // means this version has not been deployed yet,
+                // and no update mark has been set on this version.
+                return undefined;
+            }
+            if (result === undefined || result < mark) {
+                result = mark;
+            }
         }
-        return undefined;
+        return result;
     }
 
     get isUpToDate(): boolean {

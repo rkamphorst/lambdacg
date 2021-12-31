@@ -50,6 +50,8 @@ class S3ClientStub {
     ) => {
         let counter = 0;
 
+        const spies = [];
+
         for (const list of lists) {
             const keyMarker =
                 counter == 0 ? undefined : `keyMarker-${counter - 1}`;
@@ -73,38 +75,61 @@ class S3ClientStub {
                 .filter((i) => i.IsDeleted === true)
                 .map(specToVersion);
 
-            this.#stub.listObjectVersions
-                .withArgs(
-                    sinon.match(
-                        (r: S3.ListObjectVersionsRequest) =>
-                            r.Prefix === prefix &&
-                            r.KeyMarker === keyMarker &&
-                            r.VersionIdMarker === versionIdMarker
+            spies.push(
+                this.#stub.listObjectVersions
+                    .withArgs(
+                        sinon.match(
+                            (r: S3.ListObjectVersionsRequest) =>
+                                r.Prefix === prefix &&
+                                r.KeyMarker === keyMarker &&
+                                r.VersionIdMarker === versionIdMarker
+                        )
                     )
-                )
-                .returns({
-                    promise: () => {
-                        return Promise.resolve({
-                            IsTruncated: isTruncated,
-                            NextKeyMarker: nextKeyMarker,
-                            NextVersionIdMarker: nextVersionIdMarker,
-                            Versions:
-                                versions.length == 0
-                                    ? undefined
-                                    : (versions as S3.ObjectVersionList),
-                            DeleteMarkers:
-                                deleteMarkers.length == 0
-                                    ? undefined
-                                    : (deleteMarkers as S3.DeleteMarkers),
-                        });
-                    },
-                } as Request<S3.ListObjectVersionsOutput, AWSError>);
+                    .returns({
+                        promise: () => {
+                            return Promise.resolve({
+                                IsTruncated: isTruncated,
+                                NextKeyMarker: nextKeyMarker,
+                                NextVersionIdMarker: nextVersionIdMarker,
+                                Versions:
+                                    versions.length == 0
+                                        ? undefined
+                                        : (versions as S3.ObjectVersionList),
+                                DeleteMarkers:
+                                    deleteMarkers.length == 0
+                                        ? undefined
+                                        : (deleteMarkers as S3.DeleteMarkers),
+                            });
+                        },
+                    } as Request<S3.ListObjectVersionsOutput, AWSError>)
+            );
             counter++;
         }
+        return spies;
     };
 
-    setupGetObjectTagging(tags: { [key: string]: string }) {
-        this.#stub.getObjectTagging.returns({
+    setupGetObjectTagging(
+        tags: { [key: string]: string },
+        version?: VersionSpec
+    ) {
+        let spy: sinon.SinonStub = this.#stub.getObjectTagging;
+
+        if (version) {
+            spy = spy.withArgs(
+                sinon.match((arg: S3.GetObjectTaggingRequest) => {
+                    if (typeof version === "string") {
+                        return arg.Key === version;
+                    }
+                    return (
+                        (!version.Key || version.Key === arg.Key) &&
+                        (!version.VersionId ||
+                            arg.VersionId === version.VersionId)
+                    );
+                })
+            );
+        }
+
+        spy = spy.returns({
             promise: () =>
                 Promise.resolve({
                     TagSet: Object.keys(tags).map((k) => ({
@@ -113,16 +138,18 @@ class S3ClientStub {
                     })) as S3.TagSet,
                 }),
         } as Request<S3.GetObjectTaggingOutput, AWSError>);
+
+        return spy;
     }
 
     setupPutObjectTagging() {
-        this.#stub.putObjectTagging.returns({
+        return this.#stub.putObjectTagging.returns({
             promise: () => Promise.resolve({}),
         } as Request<S3.PutObjectTaggingOutput, AWSError>);
     }
 
     setupGetObject(createReadStreamContents: string) {
-        this.#stub.getObject.returns({
+        return this.#stub.getObject.returns({
             createReadStream: () => {
                 const result = new Readable();
                 result.push(createReadStreamContents);
