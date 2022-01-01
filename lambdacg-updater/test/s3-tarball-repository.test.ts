@@ -453,14 +453,14 @@ describe("S3TarballRepository", async function () {
                 const s3ClientMock = new S3ClientMock();
 
                 // Act
-                const s3Object = new S3RepositoryTarball(
+                const s3Tarball = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientMock.object
                 );
 
                 // Assert
-                expect(s3Object).to.not.be.null;
-                expect(s3Object).to.be.instanceOf(S3RepositoryTarball);
+                expect(s3Tarball).to.not.be.null;
+                expect(s3Tarball).to.be.instanceOf(S3RepositoryTarball);
             });
         });
 
@@ -472,11 +472,11 @@ describe("S3TarballRepository", async function () {
                     { Key: "object/key", VersionId: "latest-version" },
                     { "lambdacg-update": "update-mark" }
                 );
-                const s3Object = new S3RepositoryTarball(
+                const s3Tarball = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientMock.object
                 );
-                s3Object.addVersion({
+                s3Tarball.addVersion({
                     Key: "object/key",
                     IsLatest: true,
                     LastModified: new Date("1990-01-01T01:00:00Z"),
@@ -484,7 +484,7 @@ describe("S3TarballRepository", async function () {
                 });
 
                 // Act
-                s3Object.markUpdatedAsync("update-mark");
+                s3Tarball.markUpdatedAsync("update-mark");
 
                 // Assert
                 sinon.assert.calledOnce(s3ClientMock.object.putObjectTagging);
@@ -509,17 +509,17 @@ describe("S3TarballRepository", async function () {
                             "lambdacg-deletion": undefined,
                         }
                     );
-                const s3Object = new S3RepositoryTarball(
+                const s3Tarball = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientMock.object
                 );
-                s3Object.addVersion({
+                s3Tarball.addVersion({
                     Key: "object/key",
                     IsLatest: true,
                     LastModified: new Date("1990-01-01T01:00:00Z"),
                     VersionId: "latest-version",
                 });
-                s3Object.addVersion({
+                s3Tarball.addVersion({
                     Key: "object/key",
                     IsLatest: false,
                     LastModified: new Date("1990-01-01T00:59:00Z"),
@@ -527,7 +527,7 @@ describe("S3TarballRepository", async function () {
                 });
 
                 // Act
-                s3Object.markUpdatedAsync("update-mark");
+                s3Tarball.markUpdatedAsync("update-mark");
 
                 // Assert
                 sinon.assert.calledTwice(s3ClientMock.object.putObjectTagging);
@@ -545,17 +545,17 @@ describe("S3TarballRepository", async function () {
                             "lambdacg-update": undefined,
                         }
                     );
-                const s3Object = new S3RepositoryTarball(
+                const s3Tarball = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientMock.object
                 );
-                s3Object.addDeleteMarker({
+                s3Tarball.addDeleteMarker({
                     Key: "object/key",
                     IsLatest: true,
                     LastModified: new Date("1990-01-01T01:00:00Z"),
                     VersionId: "latest-version",
                 });
-                s3Object.addVersion({
+                s3Tarball.addVersion({
                     Key: "object/key",
                     IsLatest: false,
                     LastModified: new Date("1990-01-01T00:59:00Z"),
@@ -563,7 +563,7 @@ describe("S3TarballRepository", async function () {
                 });
 
                 // Act
-                s3Object.markUpdatedAsync("update-mark");
+                s3Tarball.markUpdatedAsync("update-mark");
 
                 // Assert
                 sinon.assert.calledOnce(s3ClientMock.object.putObjectTagging);
@@ -587,11 +587,11 @@ describe("S3TarballRepository", async function () {
                 );
 
                 await s3Repo.initializeAsync();
-                const s3Object = s3Repo.tarballs.filter(
+                const s3Tarball = s3Repo.tarballs.filter(
                     (x) => x.name == "tar.gz.file.tar.gz"
                 )[0];
 
-                const stream = s3Object.getDownloadStream();
+                const stream = s3Tarball.getDownloadStream();
 
                 const buffers: Buffer[] = [];
 
