@@ -175,7 +175,10 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
 
     get isUpToDate(): boolean {
         this.#assertIsInitialized();
-        return this.#updateMark !== undefined;
+        return (
+            this.#updateMark !== undefined ||
+            Object.keys(this.#s3Objects).length == 0
+        );
     }
 
     get updateMark(): string | undefined {
@@ -190,12 +193,18 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
 
     async markUpdatedAsync(): Promise<string> {
         this.#assertIsInitialized();
+        if (this.#updateMark !== undefined) {
+            throw new Error("Already up to date");
+        }
+
         const updateMark = new Date().toISOString();
 
         await Promise.all(
-            Object.values(this.#s3Objects).map((o) =>
-                o.markUpdatedAsync(updateMark)
-            )
+            Object.values(this.#s3Objects).map(async (o) => {
+                if ((await o.getUpdateMarkAsync()) === undefined) {
+                    await o.markUpdatedAsync(updateMark);
+                }
+            })
         );
 
         this.#updateMark = updateMark;

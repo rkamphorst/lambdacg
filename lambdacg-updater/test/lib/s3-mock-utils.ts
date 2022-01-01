@@ -12,6 +12,30 @@ type VersionSpec =
           IsDeleted?: boolean | undefined;
       };
 
+type VersionMatch =
+    | string
+    | {
+          Key?: string;
+          VersionId?: string | undefined;
+      }
+    | ((v: { Key: string; VersionId?: string | undefined }) => boolean);
+
+const isMatch = (
+    vm: VersionMatch,
+    v: { Key: string; VersionId?: string | undefined }
+) => {
+    if (typeof vm === "string") {
+        return v.Key === vm;
+    } else if (typeof vm === "object") {
+        return (
+            (!("Key" in vm) || vm.Key === v.Key) &&
+            (!("VersionId" in vm) || vm.VersionId === v.VersionId)
+        );
+    } else {
+        return vm(v);
+    }
+};
+
 const specToVersion = (item: {
     Key: string;
     VersionId?: string | undefined;
@@ -26,7 +50,7 @@ const specToVersion = (item: {
     };
 };
 
-class S3ClientStub {
+class S3ClientMock {
     #stub: SinonStubbedInstance<S3>;
 
     constructor() {
@@ -109,22 +133,15 @@ class S3ClientStub {
     };
 
     setupGetObjectTagging(
-        tags: { [key: string]: string },
-        version?: VersionSpec
+        version: VersionMatch,
+        tags: { [key: string]: string }
     ) {
         let spy: sinon.SinonStub = this.#stub.getObjectTagging;
 
         if (version) {
             spy = spy.withArgs(
                 sinon.match((arg: S3.GetObjectTaggingRequest) => {
-                    if (typeof version === "string") {
-                        return arg.Key === version;
-                    }
-                    return (
-                        (!version.Key || version.Key === arg.Key) &&
-                        (!version.VersionId ||
-                            arg.VersionId === version.VersionId)
-                    );
+                    return isMatch(version, arg);
                 })
             );
         }
@@ -142,22 +159,52 @@ class S3ClientStub {
         return spy;
     }
 
-    setupPutObjectTagging() {
-        return this.#stub.putObjectTagging.returns({
-            promise: () => Promise.resolve({}),
-        } as Request<S3.PutObjectTaggingOutput, AWSError>);
+    setupPutObjectTagging(
+        version: VersionMatch,
+        tags?: { [key: string]: string | undefined }
+    ) {
+        return this.#stub.putObjectTagging
+            .withArgs(
+                sinon.match((arg: S3.PutObjectTaggingRequest) => {
+                    if (version) {
+                        if (!isMatch(version, arg)) {
+                            return false;
+                        }
+                    }
+                    if (tags) {
+                        const argTags: { [key: string]: string } = {};
+                        arg.Tagging.TagSet.forEach(
+                            (t) => (argTags[t.Key] = t.Value)
+                        );
+
+                        for (const key of Object.keys(tags)) {
+                            if (tags[key] !== argTags[key]) {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                })
+            )
+            .returns({
+                promise: () => Promise.resolve({}),
+            } as Request<S3.PutObjectTaggingOutput, AWSError>);
     }
 
-    setupGetObject(createReadStreamContents: string) {
-        return this.#stub.getObject.returns({
-            createReadStream: () => {
-                const result = new Readable();
-                result.push(createReadStreamContents);
-                result.push(null);
-                return result;
-            },
-        } as Request<S3.GetObjectOutput, AWSError>);
+    setupGetObject(version: VersionMatch, createReadStreamContents: string) {
+        return this.#stub.getObject
+            .withArgs(
+                sinon.match((arg: S3.GetObjectRequest) => isMatch(version, arg))
+            )
+            .returns({
+                createReadStream: () => {
+                    const result = new Readable();
+                    result.push(createReadStreamContents);
+                    result.push(null);
+                    return result;
+                },
+            } as Request<S3.GetObjectOutput, AWSError>);
     }
 }
 
-export { S3ClientStub };
+export { S3ClientMock };
