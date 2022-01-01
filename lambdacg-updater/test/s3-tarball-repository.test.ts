@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import {
-    S3HandlerRepository,
-    S3HandlerTarball,
-} from "lambdacg-updater/s3-handler-repository";
+    S3RepositoryTarball,
+    S3TarballRepository,
+} from "lambdacg-updater/s3-tarball-repository";
 import sinon from "sinon";
 
 import { expectToThrowAsync } from "./lib/expect-to-throw";
@@ -15,8 +15,8 @@ const packageFileNames = [
     "tar.file.tar.gz",
 ];
 
-describe("S3HandlerRepository", async function () {
-    describeClass({ S3HandlerRepository }, function () {
+describe("S3TarballRepository", async function () {
+    describeClass({ S3TarballRepository }, function () {
         describe("fromUrl", function () {
             it("Should throw for URL s3://s3Bucket/prefix", async function () {
                 // Arrange
@@ -24,7 +24,7 @@ describe("S3HandlerRepository", async function () {
 
                 // Act & Assert
                 await expectToThrowAsync(() =>
-                    S3HandlerRepository.fromUrl(
+                    S3TarballRepository.fromUrl(
                         `s3://s3Bucket/prefix`,
                         s3ClientMock.object
                     )
@@ -35,18 +35,18 @@ describe("S3HandlerRepository", async function () {
                 const s3ClientMock = new S3ClientMock();
 
                 // Act
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientMock.object
                 );
 
                 // Assert
                 expect(s3Repo).to.not.be.null;
-                expect(s3Repo).to.be.instanceOf(S3HandlerRepository);
+                expect(s3Repo).to.be.instanceOf(S3TarballRepository);
             });
         });
 
-        describeMember<S3HandlerRepository>("initializeAsync", function () {
+        describeMember<S3TarballRepository>("initializeAsync", function () {
             it("Should fetch package tarball list in s3://s3Bucket/prefix/ in one batch", async function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
@@ -56,7 +56,7 @@ describe("S3HandlerRepository", async function () {
                         packageFileNames.map((n) => `prefix/${n}`)
                     );
                 s3ClientMock.setupGetObjectTagging(() => true, {});
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientMock.object
                 );
@@ -70,7 +70,7 @@ describe("S3HandlerRepository", async function () {
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(3);
                 result.forEach((o) =>
-                    expect(o).to.be.instanceOf(S3HandlerTarball)
+                    expect(o).to.be.instanceOf(S3RepositoryTarball)
                 );
                 expect(result.map((o) => o.name)).to.have.deep.members(
                     packageFileNames
@@ -86,7 +86,7 @@ describe("S3HandlerRepository", async function () {
                         ...packageFileNames.map((n) => [`prefix/${n}`])
                     );
                 s3ClientMock.setupGetObjectTagging(() => true, {});
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientMock.object
                 );
@@ -100,7 +100,7 @@ describe("S3HandlerRepository", async function () {
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(3);
                 result.forEach((o) =>
-                    expect(o).to.be.instanceOf(S3HandlerTarball)
+                    expect(o).to.be.instanceOf(S3RepositoryTarball)
                 );
                 expect(result.map((o) => o.name)).to.have.deep.members(
                     packageFileNames
@@ -115,7 +115,7 @@ describe("S3HandlerRepository", async function () {
                     packageFileNames.map((n) => `${n}`)
                 );
                 s3ClientMock.setupGetObjectTagging(() => true, {});
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/`,
                     s3ClientMock.object
                 );
@@ -128,7 +128,7 @@ describe("S3HandlerRepository", async function () {
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(packageFileNames.length);
                 result.forEach((o) =>
-                    expect(o).to.be.instanceOf(S3HandlerTarball)
+                    expect(o).to.be.instanceOf(S3RepositoryTarball)
                 );
                 expect(result.map((o) => o.name)).to.have.deep.members(
                     packageFileNames
@@ -143,7 +143,7 @@ describe("S3HandlerRepository", async function () {
                     packageFileNames.map((n) => `${n}`)
                 );
                 s3ClientMock.setupGetObjectTagging(() => true, {});
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket`,
                     s3ClientMock.object
                 );
@@ -156,7 +156,7 @@ describe("S3HandlerRepository", async function () {
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(packageFileNames.length);
                 result.forEach((o) =>
-                    expect(o).to.be.instanceOf(S3HandlerTarball)
+                    expect(o).to.be.instanceOf(S3RepositoryTarball)
                 );
                 expect(result.map((o) => o.name)).to.have.deep.members(
                     packageFileNames
@@ -171,7 +171,7 @@ describe("S3HandlerRepository", async function () {
                     packageFileNames.map((n) => `${n}`)
                 );
                 s3ClientMock.setupGetObjectTagging(() => true, {});
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket`,
                     s3ClientMock.object
                 );
@@ -201,7 +201,7 @@ describe("S3HandlerRepository", async function () {
                     packageFileNames[2],
                 ]);
                 s3ClientMock.setupGetObjectTagging(() => true, {});
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket`,
                     s3ClientMock.object
                 );
@@ -214,7 +214,7 @@ describe("S3HandlerRepository", async function () {
                 expect(result).to.not.be.null;
                 expect(result.length).to.be.equal(2);
                 result.forEach((o) =>
-                    expect(o).to.be.instanceOf(S3HandlerTarball)
+                    expect(o).to.be.instanceOf(S3RepositoryTarball)
                 );
                 expect(result.map((o) => o.name)).to.have.deep.members([
                     packageFileNames[0],
@@ -222,7 +222,7 @@ describe("S3HandlerRepository", async function () {
                 ]);
             });
 
-            it("Should assume the latest set update mark on tarballs", async function () {
+            it("Should be up to date with latest update mark on tarballs", async function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
                 s3ClientMock.setupListObjectVersions(undefined, [
@@ -235,7 +235,7 @@ describe("S3HandlerRepository", async function () {
                 s3ClientMock.setupGetObjectTagging(packageFileNames[1], {
                     "lambdacg-update": "version2",
                 });
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket`,
                     s3ClientMock.object
                 );
@@ -248,7 +248,7 @@ describe("S3HandlerRepository", async function () {
                 expect(s3Repo.isUpToDate).to.be.true;
             });
 
-            it("Should assume undefined update mark if any tarball has undefined update mark", async function () {
+            it("Should be not up to date if any tarball has undefined update mark", async function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
                 s3ClientMock.setupListObjectVersions(undefined, [
@@ -259,7 +259,7 @@ describe("S3HandlerRepository", async function () {
                 s3ClientMock.setupGetObjectTagging(packageFileNames[1], {
                     "lambdacg-update": "version2",
                 });
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket`,
                     s3ClientMock.object
                 );
@@ -272,12 +272,12 @@ describe("S3HandlerRepository", async function () {
                 expect(s3Repo.isUpToDate).to.be.false;
             });
 
-            it("Should assume undefined update mark but up to date if there are no tarballs", async function () {
+            it("Should be up to date if there are no tarballs", async function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
                 s3ClientMock.setupListObjectVersions(undefined, []);
                 s3ClientMock.setupGetObjectTagging(() => true, {});
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket`,
                     s3ClientMock.object
                 );
@@ -292,13 +292,13 @@ describe("S3HandlerRepository", async function () {
             });
         });
 
-        describeMember<S3HandlerRepository>("isUpToDate", function () {
+        describeMember<S3TarballRepository>("isUpToDate", function () {
             it("Should throw if initialize not called", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
 
                 // Act
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientMock.object
                 );
@@ -307,13 +307,13 @@ describe("S3HandlerRepository", async function () {
             });
         });
 
-        describeMember<S3HandlerRepository>("updateMark", function () {
+        describeMember<S3TarballRepository>("updateMark", function () {
             it("Should throw if initialize not called", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
 
                 // Act
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientMock.object
                 );
@@ -322,13 +322,13 @@ describe("S3HandlerRepository", async function () {
             });
         });
 
-        describeMember<S3HandlerRepository>("tarballs", function () {
+        describeMember<S3TarballRepository>("tarballs", function () {
             it("Should throw if initialize not called", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
 
                 // Act
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientMock.object
                 );
@@ -337,7 +337,7 @@ describe("S3HandlerRepository", async function () {
             });
         });
 
-        describeMember<S3HandlerRepository>("markUpdatedAsync", function () {
+        describeMember<S3TarballRepository>("markUpdatedAsync", function () {
             it("Should mark only tarballs that were updated", async function () {
                 const s3ClientMock = new S3ClientMock();
 
@@ -401,7 +401,7 @@ describe("S3HandlerRepository", async function () {
                     VersionId: "latest-version",
                 });
 
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket`,
                     s3ClientMock.object
                 );
@@ -418,13 +418,12 @@ describe("S3HandlerRepository", async function () {
                 sinon.assert.calledOnce(s3ClientMock.object.putObjectTagging);
                 sinon.assert.calledOnce(putObjectTaggingSpy);
             });
-
             it("Should throw if initialize not called", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
 
                 // Act
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientMock.object
                 );
@@ -434,7 +433,7 @@ describe("S3HandlerRepository", async function () {
         });
     });
 
-    describeClass({ S3HandlerTarball }, function () {
+    describeClass({ S3RepositoryTarball }, function () {
         describe("constructor", function () {
             it("Should throw for URL s3://s3Bucket/object/key/", async function () {
                 // Arrange
@@ -443,7 +442,7 @@ describe("S3HandlerRepository", async function () {
                 // Act & Assert
                 await expectToThrowAsync(
                     () =>
-                        new S3HandlerTarball(
+                        new S3RepositoryTarball(
                             { Bucket: "s3Bucket", Key: "object/key/" },
                             s3ClientMock.object
                         )
@@ -454,18 +453,18 @@ describe("S3HandlerRepository", async function () {
                 const s3ClientMock = new S3ClientMock();
 
                 // Act
-                const s3Object = new S3HandlerTarball(
+                const s3Object = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientMock.object
                 );
 
                 // Assert
                 expect(s3Object).to.not.be.null;
-                expect(s3Object).to.be.instanceOf(S3HandlerTarball);
+                expect(s3Object).to.be.instanceOf(S3RepositoryTarball);
             });
         });
 
-        describeMember<S3HandlerTarball>("markUpdatedAsync", function () {
+        describeMember<S3RepositoryTarball>("markUpdatedAsync", function () {
             it("Should mark current version", async function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
@@ -473,7 +472,7 @@ describe("S3HandlerRepository", async function () {
                     { Key: "object/key", VersionId: "latest-version" },
                     { "lambdacg-update": "update-mark" }
                 );
-                const s3Object = new S3HandlerTarball(
+                const s3Object = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientMock.object
                 );
@@ -491,7 +490,6 @@ describe("S3HandlerRepository", async function () {
                 sinon.assert.calledOnce(s3ClientMock.object.putObjectTagging);
                 sinon.assert.calledOnce(putObjectTaggingSpy);
             });
-
             it("Should clear mark on previous version if present", async function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
@@ -511,7 +509,7 @@ describe("S3HandlerRepository", async function () {
                             "lambdacg-deletion": undefined,
                         }
                     );
-                const s3Object = new S3HandlerTarball(
+                const s3Object = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientMock.object
                 );
@@ -536,7 +534,6 @@ describe("S3HandlerRepository", async function () {
                 sinon.assert.calledOnce(putObjectTaggingCurrentSpy);
                 sinon.assert.calledOnce(putObjectTaggingPreviousSpy);
             });
-
             it("Should only mark previous version if deleted", async function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
@@ -548,7 +545,7 @@ describe("S3HandlerRepository", async function () {
                             "lambdacg-update": undefined,
                         }
                     );
-                const s3Object = new S3HandlerTarball(
+                const s3Object = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "object/key" },
                     s3ClientMock.object
                 );
@@ -574,7 +571,7 @@ describe("S3HandlerRepository", async function () {
             });
         });
 
-        describeMember<S3HandlerTarball>("getDownloadStream", function () {
+        describeMember<S3RepositoryTarball>("getDownloadStream", function () {
             it("Should correctly download the contents of an object", async function () {
                 const s3ClientMock = new S3ClientMock();
                 s3ClientMock.setupListObjectVersions(
@@ -584,7 +581,7 @@ describe("S3HandlerRepository", async function () {
                 s3ClientMock.setupGetObjectTagging(() => true, {});
                 s3ClientMock.setupGetObject(() => true, "content-of-object");
 
-                const s3Repo = S3HandlerRepository.fromUrl(
+                const s3Repo = S3TarballRepository.fromUrl(
                     `s3://s3Bucket/prefix/`,
                     s3ClientMock.object
                 );

@@ -8,8 +8,8 @@ import {
     getBucketAndPrefixFromS3FolderUrl,
 } from "./s3-utils";
 import {
-    HandlerRepositoryInterface,
-    HandlerTarballInterface,
+    RepositoryTarballInterface,
+    TarballRepositoryInterface,
 } from "./updater-contract";
 
 const ObjectChange: unique symbol = Symbol("lambdacg-update");
@@ -23,14 +23,14 @@ type UpdateMark = {
     Mark: string;
 };
 
-class S3HandlerRepository implements HandlerRepositoryInterface {
+class S3TarballRepository implements TarballRepositoryInterface {
     static fromUrl(
         s3FolderUrl: string,
         s3Client?: S3,
         maxKeysPerInvocation?: number
-    ): S3HandlerRepository {
+    ): S3TarballRepository {
         const bucketAndPrefix = getBucketAndPrefixFromS3FolderUrl(s3FolderUrl);
-        return new S3HandlerRepository(
+        return new S3TarballRepository(
             bucketAndPrefix,
             s3Client ?? new S3(),
             maxKeysPerInvocation ?? 1000
@@ -40,7 +40,7 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
     #bucketAndPrefix: BucketPrefix;
     #maxKeysPerInvocation: number;
     #s3Client: S3;
-    #s3Objects: { [key: string]: S3HandlerTarball };
+    #s3Objects: { [key: string]: S3RepositoryTarball };
     #initializePromise: Promise<void> | undefined;
     #isInitialized: boolean;
     #updateMark: string | undefined;
@@ -82,12 +82,12 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
         return this.#initializePromise;
     }
 
-    #getOrCreateS3HandlerTarball(key: string | undefined): S3HandlerTarball {
+    #getOrCreateS3HandlerTarball(key: string | undefined): S3RepositoryTarball {
         if (key === undefined) {
             throw new Error("Key not set");
         }
 
-        const s3Obj = new S3HandlerTarball(
+        const s3Obj = new S3RepositoryTarball(
             { Bucket: this.#bucketAndPrefix.Bucket, Key: key },
             this.#s3Client
         );
@@ -186,7 +186,7 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
         return this.#updateMark;
     }
 
-    get tarballs(): S3HandlerTarball[] {
+    get tarballs(): S3RepositoryTarball[] {
         this.#assertIsInitialized();
         return Object.values(this.#s3Objects).filter((o) => !o.isDeleted);
     }
@@ -218,7 +218,7 @@ class S3HandlerRepository implements HandlerRepositoryInterface {
     }
 }
 
-class S3HandlerTarball implements HandlerTarballInterface {
+class S3RepositoryTarball implements RepositoryTarballInterface {
     #s3Client: S3;
     #bucketAndKey: BucketKey;
     #latestVersion:
@@ -543,4 +543,4 @@ class S3HandlerTarball implements HandlerTarballInterface {
     }
 }
 
-export { S3HandlerRepository, S3HandlerTarball };
+export { S3RepositoryTarball, S3TarballRepository };

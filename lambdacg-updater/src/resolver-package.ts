@@ -12,7 +12,7 @@ import {
 } from "./npm-utils";
 import { unpackNpmPackageContentsInTarball } from "./unpack";
 import {
-    HandlerTarballInterface,
+    RepositoryTarballInterface,
     ResolverPackageInterface,
 } from "./updater-contract";
 
@@ -38,7 +38,7 @@ class ResolverPackage implements ResolverPackageInterface {
         this.#npmInstallAsync = npmInstallAsync;
     }
 
-    addHandlerTarball(tarball: HandlerTarballInterface): void {
+    addHandlerTarball(tarball: RepositoryTarballInterface): void {
         if (
             this.#addModulePromises.findIndex(
                 (x) => x.tarballName === tarball.name

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { npmInstallAsync } from "lambdacg-updater/npm-utils";
 import { ResolverPackage } from "lambdacg-updater/resolver-package";
-import { HandlerTarballInterface } from "lambdacg-updater/updater-contract";
+import { RepositoryTarballInterface } from "lambdacg-updater/updater-contract";
 import mockFs from "mock-fs";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
@@ -23,7 +23,7 @@ const logger = getLogger();
 
 const dataDir = path.join(__dirname, "data", "resolver-package.test");
 
-class StubHandlerTarball implements HandlerTarballInterface {
+class StubHandlerTarball implements RepositoryTarballInterface {
     #name: string;
     #stream: () => Readable;
 
