@@ -66,7 +66,7 @@ const importModuleAsHandlerFactoryOrThrow = (
     return module as HandlerFactory;
 };
 
-let handlerFactoryListSource: () => Promise<string[]> | undefined = undefined;
+let handlerFactoryListSource: (() => Promise<string[]>) | undefined = undefined;
 let handlerFactoryModules: HandlerFactory[] | undefined = undefined;
 
 const setHandlerFactoryListSource = (callback: () => Promise<string[]>) => {

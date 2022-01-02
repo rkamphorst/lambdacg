@@ -55,7 +55,7 @@ class Gateway implements GatewayInterface {
         } catch (error) {
             return {
                 success: false,
-                error,
+                error: typeof error === "object" ? error ?? {} : `${error}`,
             };
         }
     }

@@ -4,15 +4,15 @@
         "module": "commonjs",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
-        "composite": true,
-        "declaration": true,
-        "declarationMap": true,      
+        "target": "es6",
         "noImplicitAny": true,
         "moduleResolution": "node",
-        "sourceMap": true,
         "outDir": "dist",
         "baseUrl": ".",
         "paths": {
+            "lambdacg-resolver/*": [
+                "src/*"
+            ],
             "*": [
                 "node_modules/*"
             ]
@@ -20,5 +20,13 @@
     },
     "include": [
         "**/*"
+    ],
+    "exclude": [
+        "**/test/*"
+    ],
+    "references": [
+        {
+            "path": "../lambdacg-contract"
+        }
     ]
 }

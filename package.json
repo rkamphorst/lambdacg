@@ -2,20 +2,14 @@
   "name": "lambdacg",
   "scripts": {
     "prepare": "npm-run-all prepare:*",
-    "prepare:contract": "cd lambdacg-contract/src && npm ci",
-    "prepare:resolver": "cd lambdacg-resolver/src && npm ci",
-    "prepare:resolver-test": "cd lambdacg-resolver/test && npm ci",
-    "prepare:updater": "cd lambdacg-updater/src && npm ci",
-    "prepare:updater-test": "cd lambdacg-updater/test && npm ci",
-    "build": "npm run build:contract && npm run build:resolver && npm run build:updater",
-    "build:contract": "cd lambdacg-contract/src && npm run build",
-    "build:resolver": "cd lambdacg-resolver/src && npm run build",
-    "build:updater": "cd lambdacg-updater/src && npm run build",
+    "prepare:contract": "cd lambdacg-contract && npm ci",
+    "prepare:resolver": "cd lambdacg-resolver && npm ci",
+    "prepare:updater": "cd lambdacg-updater && npm ci",
     "test": "npm-run-all test:*",
-    "test:resolver": "cd lambdacg-resolver/test && npm test",
-    "test:updater": "cd lambdacg-updater/test && npm test",
+    "test:resolver": "cd lambdacg-resolver && npm test",
+    "test:updater": "cd lambdacg-updater && npm test",
     "lint": "eslint .",
-    "lint-and-fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.5.0",

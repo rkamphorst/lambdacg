@@ -9,7 +9,7 @@
     "dist/**/*.d.ts"
   ],
   "scripts": {
-    "build": "tsc --build"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
