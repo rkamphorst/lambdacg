@@ -308,6 +308,52 @@ describe("S3TarballRepository", async function () {
         });
 
         describeMember<S3TarballRepository>("updateMark", function () {
+            it("Should contain latest update mark of a tarball", async function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+                s3ClientMock.setupListObjectVersions(undefined, [
+                    "key1.tgz",
+                    "key2.tgz",
+                ]);
+                s3ClientMock.setupGetObjectTagging("key1.tgz", {
+                    "lambdacg-update": "1991-01-01T01:00:00Z",
+                });
+                s3ClientMock.setupGetObjectTagging("key2.tgz", {
+                    "lambdacg-update": "1991-01-01T01:01:00Z",
+                });
+                const s3Repo = S3TarballRepository.fromUrl(
+                    "s3://s3Bucket",
+                    s3ClientMock.object
+                );
+                await s3Repo.initializeAsync();
+
+                // Act & Assert
+                expect(s3Repo.updateMark).to.be.equal("1991-01-01T01:01:00Z");
+                expect(s3Repo.isUpToDate).to.be.true;
+            });
+
+            it("Should be undefined if any tarball has no update mark", async function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+                s3ClientMock.setupListObjectVersions(undefined, [
+                    "key1.tgz",
+                    "key2.tgz",
+                ]);
+                s3ClientMock.setupGetObjectTagging("key1.tgz", {
+                    "lambdacg-update": "1991-01-01T01:00:00Z",
+                });
+                s3ClientMock.setupGetObjectTagging("key2.tgz", {});
+                const s3Repo = S3TarballRepository.fromUrl(
+                    "s3://s3Bucket",
+                    s3ClientMock.object
+                );
+                await s3Repo.initializeAsync();
+
+                // Act & Assert
+                expect(s3Repo.updateMark).to.be.undefined;
+                expect(s3Repo.isUpToDate).to.be.false;
+            });
+
             it("Should throw if initialize not called", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
@@ -318,6 +364,7 @@ describe("S3TarballRepository", async function () {
                     s3ClientMock.object
                 );
 
+                // Assert
                 expectToThrowAsync(() => s3Repo.updateMark);
             });
         });
@@ -454,13 +501,14 @@ describe("S3TarballRepository", async function () {
 
                 // Act
                 const s3Tarball = new S3RepositoryTarball(
-                    { Bucket: "s3Bucket", Key: "object/key" },
+                    { Bucket: "s3Bucket", Key: "object/key.tgz" },
                     s3ClientMock.object
                 );
 
                 // Assert
                 expect(s3Tarball).to.not.be.null;
                 expect(s3Tarball).to.be.instanceOf(S3RepositoryTarball);
+                expect(s3Tarball.name).to.be.equal("key.tgz");
             });
         });
 
@@ -620,6 +668,134 @@ describe("S3TarballRepository", async function () {
                 });
             }
         );
+
+        describeMember<S3RepositoryTarball>("getUpdateMarkAsync", function () {
+            it("Should get update mark from latest version tags", async function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+                const getObjectTaggingSpy = s3ClientMock.setupGetObjectTagging(
+                    { VersionId: "latest-version" },
+                    { "lambdacg-update": "1992-01-01T02:00:01Z" }
+                );
+
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "blah.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addVersion({
+                    Key: "blah.tgz",
+                    IsLatest: true,
+                    VersionId: "latest-version",
+                    LastModified: new Date("1992-01-01T01:00:00Z"),
+                });
+
+                const result = await s3Tarball.getUpdateMarkAsync();
+
+                expect(result).to.be.equal("1992-01-01T02:00:01Z");
+                sinon.assert.calledOnce(s3ClientMock.object.getObjectTagging);
+                sinon.assert.calledOnce(getObjectTaggingSpy);
+            });
+            it("Should return undefined if latest version has no tags", async function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+                const getObjectTaggingSpy = s3ClientMock.setupGetObjectTagging(
+                    { VersionId: "latest-version" },
+                    {}
+                );
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "blah.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addVersion({
+                    Key: "blah.tgz",
+                    IsLatest: true,
+                    VersionId: "latest-version",
+                    LastModified: new Date("1992-01-01T01:00:00Z"),
+                });
+
+                // Act
+                const result = await s3Tarball.getUpdateMarkAsync();
+
+                // Assert
+                expect(result).to.be.undefined;
+                sinon.assert.calledOnce(s3ClientMock.object.getObjectTagging);
+                sinon.assert.calledOnce(getObjectTaggingSpy);
+            });
+            it("Should get update mark from previous version tags if deleted", async function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+                const getObjectTaggingPreviousVersionSpy =
+                    s3ClientMock.setupGetObjectTagging(
+                        { VersionId: "previous-version" },
+                        { "lambdacg-deletion": "1992-01-01T02:00:01Z" }
+                    );
+                const getObjectTaggingLatestversionSpy = s3ClientMock
+                    .setupGetObjectTagging({ VersionId: "latest-version" }, {})
+                    .throws(new Error());
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "blah.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addDeleteMarker({
+                    Key: "blah.tgz",
+                    IsLatest: true,
+                    VersionId: "latest-version",
+                    LastModified: new Date("1992-01-01T01:00:00Z"),
+                });
+                s3Tarball.addVersion({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "previous-version",
+                    LastModified: new Date("1992-01-01T00:59:00Z"),
+                });
+
+                // Act
+                const result = await s3Tarball.getUpdateMarkAsync();
+
+                // Assert
+                expect(result).to.be.equal("1992-01-01T02:00:01Z");
+                sinon.assert.calledOnce(getObjectTaggingPreviousVersionSpy);
+                sinon.assert.notCalled(getObjectTaggingLatestversionSpy);
+                sinon.assert.calledOnce(s3ClientMock.object.getObjectTagging);
+            });
+            it("Should return undefined if previous version tags empty and deleted", async function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+                const getObjectTaggingPreviousVersionSpy =
+                    s3ClientMock.setupGetObjectTagging(
+                        { VersionId: "previous-version" },
+                        {}
+                    );
+                const getObjectTaggingLatestversionSpy = s3ClientMock
+                    .setupGetObjectTagging({ VersionId: "latest-version" }, {})
+                    .throws(new Error());
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "blah.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addDeleteMarker({
+                    Key: "blah.tgz",
+                    IsLatest: true,
+                    VersionId: "latest-version",
+                    LastModified: new Date("1992-01-01T01:00:00Z"),
+                });
+                s3Tarball.addVersion({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "previous-version",
+                    LastModified: new Date("1992-01-01T00:59:00Z"),
+                });
+
+                // Act
+                const result = await s3Tarball.getUpdateMarkAsync();
+
+                // Assert
+                expect(result).to.be.undefined;
+                sinon.assert.calledOnce(getObjectTaggingPreviousVersionSpy);
+                sinon.assert.notCalled(getObjectTaggingLatestversionSpy);
+                sinon.assert.calledOnce(s3ClientMock.object.getObjectTagging);
+            });
+        });
 
         describeMember<S3RepositoryTarball>("markUpdatedAsync", function () {
             it("Should mark current version", async function () {
