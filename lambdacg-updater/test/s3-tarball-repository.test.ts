@@ -5,7 +5,7 @@ import {
     S3RepositoryTarball,
     S3TarballRepository,
 } from "../src/s3-tarball-repository";
-import { expectToThrowAsync } from "./lib/expect-to-throw";
+import { expectToThrow, expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeClass, describeMember } from "./lib/mocha-utils";
 import { S3ClientMock } from "./lib/s3-mock-utils";
 
@@ -18,12 +18,12 @@ const packageFileNames = [
 describe("S3TarballRepository", async function () {
     describeClass({ S3TarballRepository }, function () {
         describe("fromUrl", function () {
-            it("Should throw for URL s3://s3Bucket/prefix", async function () {
+            it("Should throw for URL s3://s3Bucket/prefix", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
 
                 // Act & Assert
-                await expectToThrowAsync(() =>
+                expectToThrow(() =>
                     S3TarballRepository.fromUrl(
                         `s3://s3Bucket/prefix`,
                         s3ClientMock.object
@@ -303,7 +303,7 @@ describe("S3TarballRepository", async function () {
                     s3ClientMock.object
                 );
 
-                expectToThrowAsync(() => s3Repo.isUpToDate);
+                expectToThrow(() => s3Repo.isUpToDate);
             });
         });
 
@@ -365,7 +365,7 @@ describe("S3TarballRepository", async function () {
                 );
 
                 // Assert
-                expectToThrowAsync(() => s3Repo.updateMark);
+                expectToThrow(() => s3Repo.updateMark);
             });
         });
 
@@ -380,7 +380,7 @@ describe("S3TarballRepository", async function () {
                     s3ClientMock.object
                 );
 
-                expectToThrowAsync(() => s3Repo.tarballs);
+                expectToThrow(() => s3Repo.tarballs);
             });
         });
 
@@ -477,24 +477,28 @@ describe("S3TarballRepository", async function () {
 
                 expectToThrowAsync(() => s3Repo.markUpdatedAsync());
             });
+            it("Should throw if called when already up to date", async function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+                s3ClientMock.setupListObjectVersions(undefined, ["key1.tgz"]);
+                s3ClientMock.setupGetObjectTagging("key1.tgz", {
+                    "lambdacg-update": "1991-01-01T01:00:00Z",
+                });
+                const s3Repo = S3TarballRepository.fromUrl(
+                    "s3://s3Bucket",
+                    s3ClientMock.object
+                );
+                await s3Repo.initializeAsync();
+
+                // Act & Assert
+                expect(s3Repo.isUpToDate).to.be.true;
+                expectToThrowAsync(() => s3Repo.markUpdatedAsync());
+            });
         });
     });
 
     describeClass({ S3RepositoryTarball }, function () {
         describe("constructor", function () {
-            it("Should throw for URL s3://s3Bucket/object/key/", async function () {
-                // Arrange
-                const s3ClientMock = new S3ClientMock();
-
-                // Act & Assert
-                await expectToThrowAsync(
-                    () =>
-                        new S3RepositoryTarball(
-                            { Bucket: "s3Bucket", Key: "object/key/" },
-                            s3ClientMock.object
-                        )
-                );
-            });
             it("Should be successful for URL s3://s3Bucket/object/key", async function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
@@ -509,6 +513,58 @@ describe("S3TarballRepository", async function () {
                 expect(s3Tarball).to.not.be.null;
                 expect(s3Tarball).to.be.instanceOf(S3RepositoryTarball);
                 expect(s3Tarball.name).to.be.equal("key.tgz");
+            });
+        });
+
+        describeMember<S3RepositoryTarball>("addVersion", function () {
+            it("Should throw if versionId not supplied", function () {
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "key.tgz" },
+                    s3ClientMock.object
+                );
+                expectToThrow(() => {
+                    s3Tarball.addVersion({
+                        Key: "key.tgz",
+                        IsLatest: true,
+                        LastModified: new Date("1990-01-01T00:00:00Z"),
+                    });
+                });
+            });
+            it("Should throw if lastModified not supplied", function () {
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "key.tgz" },
+                    s3ClientMock.object
+                );
+                expectToThrow(() => {
+                    s3Tarball.addVersion({
+                        Key: "key.tgz",
+                        IsLatest: true,
+                        VersionId: "latest-version",
+                    });
+                });
+            });
+            it("Should throw if latest version and latest version aldready set", function () {
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "key.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addVersion({
+                    Key: "key.tgz",
+                    IsLatest: true,
+                    LastModified: new Date("1990-01-01T00:00:00Z"),
+                    VersionId: "latest-version",
+                });
+                expectToThrow(() => {
+                    s3Tarball.addVersion({
+                        Key: "key.tgz",
+                        IsLatest: true,
+                        LastModified: new Date("1990-01-02T00:00:00Z"),
+                        VersionId: "latest-version2",
+                    });
+                });
             });
         });
 

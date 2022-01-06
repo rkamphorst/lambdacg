@@ -4,7 +4,7 @@ import {
     getBucketAndKeyFromS3ObjectUrl,
     getBucketAndPrefixFromS3FolderUrl,
 } from "../src/s3-utils";
-import { expectToThrowAsync } from "./lib/expect-to-throw";
+import { expectToThrow } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
 
 describe("S3Utils", async function () {
@@ -15,8 +15,8 @@ describe("S3Utils", async function () {
 
     describe("S3Utils", function () {
         describeObject({ getBucketAndPrefixFromS3FolderUrl }, function () {
-            it("Should throw for URL s3://[s3Bucket]/prefix", async function () {
-                await expectToThrowAsync(() =>
+            it("Should throw for URL s3://[s3Bucket]/prefix", function () {
+                expectToThrow(() =>
                     getBucketAndPrefixFromS3FolderUrl(`s3://s3-bucket/prefix`)
                 );
             });
@@ -33,8 +33,8 @@ describe("S3Utils", async function () {
         });
 
         describeObject({ getBucketAndKeyFromS3ObjectUrl }, function () {
-            it("Should throw for URL s3://[s3Bucket]/object/key/", async function () {
-                await expectToThrowAsync(() =>
+            it("Should throw for URL s3://[s3Bucket]/object/key/", function () {
+                expectToThrow(() =>
                     getBucketAndKeyFromS3ObjectUrl(`s3://s3-bucket/object/key/`)
                 );
             });

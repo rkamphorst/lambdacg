@@ -23,17 +23,32 @@ type UpdateMark = {
     Mark: string;
 };
 
+const getVersionIdAndLastModifiedOrThrow = (
+    version: S3.DeleteMarkerEntry | S3.ObjectVersion
+) => {
+    if (!version.VersionId) {
+        throw new Error("Version ID not given");
+    }
+    if (!version.LastModified) {
+        throw new Error("Last Modified (timestamp) not given");
+    }
+    return {
+        VersionId: version.VersionId,
+        LastModified: version.LastModified,
+    };
+};
+
 class S3TarballRepository implements TarballRepositoryInterface {
     static fromUrl(
         s3FolderUrl: string,
-        s3Client?: S3,
-        maxKeysPerInvocation?: number
+        s3Client: S3,
+        maxKeysPerInvocation = 1000
     ): S3TarballRepository {
         const bucketAndPrefix = getBucketAndPrefixFromS3FolderUrl(s3FolderUrl);
         return new S3TarballRepository(
             bucketAndPrefix,
-            s3Client ?? new S3(),
-            maxKeysPerInvocation ?? 1000
+            s3Client,
+            maxKeysPerInvocation
         );
     }
 
@@ -48,7 +63,7 @@ class S3TarballRepository implements TarballRepositoryInterface {
     constructor(
         bucketAndPrefix: BucketPrefix,
         s3Client: S3,
-        maxKeysPerInvocation = 1000
+        maxKeysPerInvocation: number
     ) {
         this.#bucketAndPrefix = bucketAndPrefix;
         this.#maxKeysPerInvocation = maxKeysPerInvocation;
@@ -61,9 +76,14 @@ class S3TarballRepository implements TarballRepositoryInterface {
     initializeAsync(): Promise<void> {
         const internalInitializeAsync = async () => {
             await this.#foreachTgzVersionAsync(
-                (v) => this.#getOrCreateS3HandlerTarball(v.Key).addVersion(v),
+                (v) =>
+                    this.#getOrCreateS3HandlerTarball(
+                        v.Key as string
+                    ).addVersion(v),
                 (d) =>
-                    this.#getOrCreateS3HandlerTarball(d.Key).addDeleteMarker(d)
+                    this.#getOrCreateS3HandlerTarball(
+                        d.Key as string
+                    ).addDeleteMarker(d)
             );
 
             // remove s3 objects that do not have complete version info
@@ -82,11 +102,7 @@ class S3TarballRepository implements TarballRepositoryInterface {
         return this.#initializePromise;
     }
 
-    #getOrCreateS3HandlerTarball(key: string | undefined): S3RepositoryTarball {
-        if (key === undefined) {
-            throw new Error("Key not set");
-        }
-
+    #getOrCreateS3HandlerTarball(key: string): S3RepositoryTarball {
         const s3Obj = new S3RepositoryTarball(
             { Bucket: this.#bucketAndPrefix.Bucket, Key: key },
             this.#s3Client
@@ -141,7 +157,7 @@ class S3TarballRepository implements TarballRepositoryInterface {
     }
 
     #selectTgz(obj: S3.ObjectVersion | S3.DeleteMarkerEntry): boolean {
-        const filename = obj.Key?.substr(
+        const filename = (obj.Key as string).substring(
             this.#bucketAndPrefix.Prefix?.length ?? 0
         );
 
@@ -245,32 +261,22 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
     }
 
     addVersion(objectVersion: S3.ObjectVersion) {
+        const { VersionId: versionId, LastModified: lastModified } =
+            getVersionIdAndLastModifiedOrThrow(objectVersion);
         if (objectVersion.IsLatest) {
-            this.#setLatestVersion(
-                objectVersion.VersionId,
-                objectVersion.LastModified,
-                false
-            );
+            this.#setLatestVersion(versionId, lastModified, false);
         } else {
-            this.#updatePreviousObjectVersion(
-                objectVersion.VersionId,
-                objectVersion.LastModified
-            );
+            this.#updatePreviousObjectVersion(versionId, lastModified);
         }
     }
 
     addDeleteMarker(deleteMarker: S3.DeleteMarkerEntry) {
+        const { VersionId: versionId, LastModified: lastModified } =
+            getVersionIdAndLastModifiedOrThrow(deleteMarker);
         if (deleteMarker.IsLatest) {
-            this.#setLatestVersion(
-                deleteMarker.VersionId,
-                deleteMarker.LastModified,
-                true
-            );
+            this.#setLatestVersion(versionId, lastModified, true);
         } else {
-            this.#updatePreviousDeleteMarker(
-                deleteMarker.VersionId,
-                deleteMarker.LastModified
-            );
+            this.#updatePreviousDeleteMarker(versionId, lastModified);
         }
     }
 
@@ -307,16 +313,10 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
     }
 
     #setLatestVersion(
-        versionId: string | undefined,
-        lastModified: Date | undefined,
+        versionId: string,
+        lastModified: Date,
         isDeleteMarker: boolean
     ) {
-        if (!versionId) {
-            throw new Error("Version ID not given");
-        }
-        if (!lastModified) {
-            throw new Error("Last Modified (timestamp) not given");
-        }
         if (this.#latestVersion !== undefined) {
             throw new Error(
                 `Latest object version already set for ${this.url}: ${
@@ -332,14 +332,7 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
         };
     }
 
-    #updatePreviousObjectVersion(
-        versionId: string | undefined,
-        lastModified: Date | undefined
-    ) {
-        if (lastModified === undefined || versionId === undefined) {
-            return;
-        }
-
+    #updatePreviousObjectVersion(versionId: string, lastModified: Date) {
         if (
             this.#previousObjectVersion === undefined ||
             this.#previousObjectVersion.LastModified < lastModified
@@ -351,14 +344,7 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
         }
     }
 
-    #updatePreviousDeleteMarker(
-        versionId: string | undefined,
-        lastModified: Date | undefined
-    ) {
-        if (lastModified === undefined || versionId === undefined) {
-            return;
-        }
-
+    #updatePreviousDeleteMarker(versionId: string, lastModified: Date) {
         if (
             this.#previousDeleteMarker === undefined ||
             this.#previousDeleteMarker.LastModified < lastModified
