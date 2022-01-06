@@ -1,11 +1,10 @@
-name: Build and Test
+name: Lint and Test
 
 on:
   - push
-  - pull_request
 
 jobs:
-  buildAndTest:
+  lintAndTest:
 
     runs-on: ubuntu-latest
     permissions:

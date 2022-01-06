@@ -22,7 +22,7 @@ function mergeItems(item1: unknown, item2: unknown) {
     if (type1 !== type2 || type1 !== "object") {
         // (1) items don't have the same type, or
         // (2) the items are not objects, so we cannot merge
-        // in these cases we return item1
+        // in these cases we return item2
         return item2;
     }
 
@@ -31,7 +31,7 @@ function mergeItems(item1: unknown, item2: unknown) {
 
     if (isArray1 !== isArray2) {
         // one of the items is an array and the other isn't.
-        // return first item.
+        // return last item
         return item2;
     }
 

@@ -1,11 +1,12 @@
 import { expect } from "chai";
-import { Gateway } from "lambdacg-resolver/gateway";
+import sinon from "sinon";
+
+import { Gateway } from "../src/gateway";
 import {
     ComposeFunction,
     ExecuteAsyncFunction,
     ProvideHandlerFactoriesAsyncFunction,
-} from "lambdacg-resolver/gateway-contract";
-import sinon from "sinon";
+} from "../src/gateway-contract";
 
 describe("Gateway", () => {
     it("Should call compose and execute", async () => {
@@ -133,7 +134,7 @@ describe("Gateway", () => {
         }
     });
 
-    it("Should respond with the error that execute rejects with", async () => {
+    it("Should respond with the error (Error) that execute rejects with", async () => {
         const composeStub = sinon
             .stub()
             .returns({ composeResponse: "composeResponse" });
@@ -168,6 +169,78 @@ describe("Gateway", () => {
             expect(result.error).to.be.a("Error");
             const error = result.error as Error;
             expect(error.message).to.be.equal("executeAsyncError");
+        }
+    });
+
+    it("Should respond with the error (string) that execute rejects with", async () => {
+        const composeStub = sinon
+            .stub()
+            .returns({ composeResponse: "composeResponse" });
+        const compose: ComposeFunction = composeStub;
+
+        const executeAsyncStub = sinon
+            .stub()
+            .returns(Promise.reject("executeAsyncError"));
+        const executeAsync: ExecuteAsyncFunction = executeAsyncStub;
+
+        const provideHandlerFactoriesAsyncStub = sinon
+            .stub()
+            .returns(Promise.resolve([]));
+        const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
+            provideHandlerFactoriesAsyncStub;
+
+        const gateway = new Gateway(
+            provideHandlerFactoriesAsync,
+            executeAsync,
+            compose
+        );
+
+        const result = await gateway.handleRequestAsync({
+            requestName: "requestName",
+        });
+
+        expect(result.success).to.be.false;
+        expect(executeAsyncStub.callCount == 1).to.be.true;
+        expect(composeStub.callCount == 0).to.be.true;
+
+        if (result.success === false) {
+            const error = result.error as string;
+            expect(error).to.be.equal("executeAsyncError");
+        }
+    });
+
+    it("Should respond with empty error execute rejects with null", async () => {
+        const composeStub = sinon
+            .stub()
+            .returns({ composeResponse: "composeResponse" });
+        const compose: ComposeFunction = composeStub;
+
+        const executeAsyncStub = sinon.stub().returns(Promise.reject(null));
+        const executeAsync: ExecuteAsyncFunction = executeAsyncStub;
+
+        const provideHandlerFactoriesAsyncStub = sinon
+            .stub()
+            .returns(Promise.resolve([]));
+        const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
+            provideHandlerFactoriesAsyncStub;
+
+        const gateway = new Gateway(
+            provideHandlerFactoriesAsync,
+            executeAsync,
+            compose
+        );
+
+        const result = await gateway.handleRequestAsync({
+            requestName: "requestName",
+        });
+
+        expect(result.success).to.be.false;
+        expect(executeAsyncStub.callCount == 1).to.be.true;
+        expect(composeStub.callCount == 0).to.be.true;
+
+        if (result.success === false) {
+            const error = result.error;
+            expect(error).to.be.deep.equal({});
         }
     });
 

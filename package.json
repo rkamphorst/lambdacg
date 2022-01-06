@@ -8,6 +8,9 @@
     "test": "npm-run-all test:*",
     "test:resolver": "cd lambdacg-resolver && npm test",
     "test:updater": "cd lambdacg-updater && npm test",
+    "test-coverage": "npm-run-all test-coverage:*",
+    "test-coverage:resolver": "cd lambdacg-resolver && npm run test-coverage",
+    "test-coverage:updater": "cd lambdacg-updater && npm run test-coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

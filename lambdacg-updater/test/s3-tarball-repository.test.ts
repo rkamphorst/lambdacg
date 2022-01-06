@@ -1,10 +1,10 @@
 import { expect } from "chai";
+import sinon from "sinon";
+
 import {
     S3RepositoryTarball,
     S3TarballRepository,
-} from "lambdacg-updater/s3-tarball-repository";
-import sinon from "sinon";
-
+} from "../src/s3-tarball-repository";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeClass, describeMember } from "./lib/mocha-utils";
 import { S3ClientMock } from "./lib/s3-mock-utils";

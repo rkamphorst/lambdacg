@@ -1,7 +1,4 @@
 import { expect } from "chai";
-import { npmInstallAsync } from "lambdacg-updater/npm-utils";
-import { ResolverPackage } from "lambdacg-updater/resolver-package";
-import { RepositoryTarballInterface } from "lambdacg-updater/updater-contract";
 import mockFs from "mock-fs";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
@@ -10,6 +7,9 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import unzipper from "unzipper";
 
+import { npmInstallAsync } from "../src/npm-utils";
+import { ResolverPackage } from "../src/resolver-package";
+import { RepositoryTarballInterface } from "../src/updater-contract";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import {
     expectDirectoryToExistAsync,

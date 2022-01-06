@@ -6,9 +6,11 @@
   "main": "index",
   "scripts": {
     "test": "mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.test.ts",
+    "test-coverage": "nyc mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.test.ts",
     "single-test": "mocha -r 'ts-node/register' -r tsconfig-paths/register "
   },
   "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@tsconfig/recommended": "^1.0.1",
     "@types/archiver": "^5.1.1",
     "@types/chai": "^4.2.22",
@@ -25,6 +27,7 @@
     "chai": "^4.3.4",
     "mocha": "^9.1.3",
     "mock-fs": "^5.1.2",
+    "nyc": "^15.1.0",
     "sinon": "^12.0.1",
     "stream-equal": "^2.0.1",
     "ts-node": "^10.4.0",

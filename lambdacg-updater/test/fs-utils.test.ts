@@ -1,9 +1,9 @@
 import { expect } from "chai";
-import fsu from "lambdacg-updater/fs-utils";
 import fs from "node:fs/promises";
 import { promisify } from "node:util";
 import { tmpName } from "tmp";
 
+import fsu from "../src/fs-utils";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import { describeObject } from "./lib/mocha-utils";
 

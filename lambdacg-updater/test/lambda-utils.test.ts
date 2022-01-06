@@ -1,9 +1,9 @@
 import archiver from "archiver";
 import { expect } from "chai";
-import { updateLambdaFunctionWithZipStreamAsync } from "lambdacg-updater/lambda-utils";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { updateLambdaFunctionWithZipStreamAsync } from "../src/lambda-utils";
 import { AwsTestSession } from "./lib/aws-test-session";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import { getLogger } from "./lib/logger";

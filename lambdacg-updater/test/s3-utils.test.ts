@@ -1,9 +1,9 @@
 import { expect } from "chai";
+
 import {
     getBucketAndKeyFromS3ObjectUrl,
     getBucketAndPrefixFromS3FolderUrl,
-} from "lambdacg-updater/s3-utils";
-
+} from "../src/s3-utils";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
 

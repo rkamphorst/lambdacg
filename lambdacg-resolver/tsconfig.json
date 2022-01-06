@@ -10,9 +10,6 @@
         "outDir": "dist",
         "baseUrl": ".",
         "paths": {
-            "lambdacg-resolver/*": [
-                "src/*"
-            ],
             "*": [
                 "node_modules/*"
             ]

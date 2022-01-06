@@ -1,9 +1,9 @@
 import { expect } from "chai";
-import { unpackNpmPackageContentsInTarball } from "lambdacg-updater/unpack";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { unpackNpmPackageContentsInTarball } from "../src/unpack";
 import { getLogger } from "./lib/logger";
 import { describeObject } from "./lib/mocha-utils";
 

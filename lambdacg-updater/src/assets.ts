@@ -1,6 +1,6 @@
 import { createReadStream } from "node:fs";
 import path from "node:path";
-import { Readable } from "node:stream";
+import { PassThrough, Readable } from "node:stream";
 
 import fsu from "./fs-utils";
 
@@ -15,15 +15,26 @@ const findPackageRootAsync = async (startPath: string): Promise<string> => {
     return await findPackageRootAsync(path.dirname(startPath));
 };
 
-const getAssetStreamAsync = async (assetName: string): Promise<Readable> => {
-    const packageRoot = await findPackageRootAsync(__dirname);
-    const assetPath = path.join(packageRoot, "assets", assetName);
+const getAssetStream = (assetName: string): Readable => {
+    const result = new PassThrough();
 
-    if (!(await fsu.fileExistsAsync(assetPath))) {
-        throw new Error(`Asset not found: ${assetName}`);
-    }
+    const findFileAndPipeToResultAsync = async () => {
+        try {
+            const packageRoot = await findPackageRootAsync(__dirname);
+            const assetPath = path.join(packageRoot, "assets", assetName);
 
-    return createReadStream(assetPath);
+            if (!(await fsu.fileExistsAsync(assetPath))) {
+                throw new Error(`Asset not found: ${assetName}`);
+            }
+
+            createReadStream(assetPath).pipe(result);
+        } catch (e) {
+            result.destroy(e instanceof Error ? e : undefined);
+        }
+    };
+
+    findFileAndPipeToResultAsync();
+    return result;
 };
 
-export { getAssetStreamAsync };
+export { getAssetStream };

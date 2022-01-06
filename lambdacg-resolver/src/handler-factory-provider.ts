@@ -4,9 +4,7 @@ import fs from "node:fs/promises";
 import { ProvideHandlerFactoriesAsyncFunction } from "./gateway-contract";
 
 const getModuleNamesFromJsonFileAsync = async (filePath: string) => {
-    const fileContents = (
-        await fs.readFile(`${__dirname}/${filePath}`)
-    ).toString("utf-8");
+    const fileContents = (await fs.readFile(filePath)).toString("utf-8");
 
     const shouldBeArray = JSON.parse(fileContents);
     if (!(shouldBeArray instanceof Array)) {
@@ -26,19 +24,40 @@ const getModuleNamesFromJsonFileAsync = async (filePath: string) => {
     return listOfStrings;
 };
 
-const importModuleAsHandlerFactoryOrThrow = (
-    moduleName: string,
-    module: unknown
-): HandlerFactory => {
-    const messageButIt = `Expecting module ${moduleName} to be a HandlerFactory, but it `;
-    if (typeof module !== "object" || module === null) {
-        throw new Error(`${messageButIt} has type '${typeof module}'`);
-    }
+const importModuleAsHandlerFactoryAsyncOrThrow = async (
+    moduleName: string
+): Promise<HandlerFactory> => {
+    const module: unknown = await import(moduleName);
 
     if (
         !(
-            "name" in module &&
-            typeof (module as HandlerFactory).name !== "string"
+            typeof module == "object" &&
+            module !== null &&
+            "default" in module &&
+            typeof (module as { default: unknown }).default === "object" &&
+            (module as { default: unknown }).default !== null
+        )
+    ) {
+        throw new Error(
+            `Expecting module "${moduleName}" default export to be an object, but it is not`
+        );
+    }
+
+    const handlerFactory = (
+        module as {
+            default: {
+                name?: string | unknown;
+                canHandle?: (() => boolean) | unknown;
+                createHandler?: (() => HandlerFactory) | unknown;
+            };
+        }
+    ).default;
+    const messageButIt = `Expecting module ${moduleName} default export to be a HandlerFactory, but it`;
+
+    if (
+        !(
+            "name" in handlerFactory &&
+            typeof (handlerFactory as HandlerFactory).name === "string"
         )
     ) {
         throw new Error(
@@ -48,8 +67,8 @@ const importModuleAsHandlerFactoryOrThrow = (
 
     if (
         !(
-            "canHandle" in module &&
-            typeof (module as HandlerFactory).canHandle !== "function"
+            "canHandle" in handlerFactory &&
+            typeof (handlerFactory as HandlerFactory).canHandle === "function"
         )
     ) {
         throw new Error(`${messageButIt} has no canHandle() method`);
@@ -57,13 +76,14 @@ const importModuleAsHandlerFactoryOrThrow = (
 
     if (
         !(
-            "createHandler" in module &&
-            typeof (module as HandlerFactory).createHandler !== "function"
+            "createHandler" in handlerFactory &&
+            typeof (handlerFactory as HandlerFactory).createHandler ===
+                "function"
         )
     ) {
         throw new Error(`${messageButIt} has no createHandler() method`);
     }
-    return module as HandlerFactory;
+    return handlerFactory as HandlerFactory;
 };
 
 let handlerFactoryListSource: (() => Promise<string[]>) | undefined = undefined;
@@ -86,12 +106,7 @@ const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
             const moduleNames = await handlerFactoryListSource();
 
             handlerFactoryModules = await Promise.all(
-                moduleNames.map(async (name) =>
-                    importModuleAsHandlerFactoryOrThrow(
-                        name,
-                        await import(name)
-                    )
-                )
+                moduleNames.map(importModuleAsHandlerFactoryAsyncOrThrow)
             );
         }
 

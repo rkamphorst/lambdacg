@@ -1,7 +1,8 @@
 import { assert, expect } from "chai";
 import { HandlerFactory, HandlerFunction } from "lambdacg-contract";
-import { executeAsync } from "lambdacg-resolver/executor";
 import sinon from "sinon";
+
+import { executeAsync } from "../src/executor";
 
 describe("Executor", () => {
     it("Should throw if execution not supported", async () => {
@@ -126,10 +127,13 @@ function executionShouldCallMultipleHandlers(execution: string): void {
         const handlerA = sinon.stub().returns({ a: "x" });
         const handlerB = sinon.stub().returns({ b: "x" });
         const handlerC = sinon.stub().returns({ c: "x" });
+        const handlerD = sinon.stub().returns({ d: "x" });
         const factories = [
             createHandlerFactory("a", () => true, handlerA),
             createHandlerFactory("b", () => false, handlerB),
             createHandlerFactory("c", () => true, handlerC),
+            createHandlerFactory("c", undefined, handlerD), // simulate missing canHandle
+            undefined as unknown as HandlerFactory, // simulate missing handler factory
         ];
 
         const result = await executeAsync(execution, factories, "name", {
@@ -235,16 +239,23 @@ async function expectToThrowAsync(
 
 function createHandlerFactory(
     name: string,
-    canHandle: (requestName: string) => boolean,
+    canHandle: ((requestName: string) => boolean) | undefined,
     handler: HandlerFunction
 ): HandlerFactory {
-    const factory: HandlerFactory = {
+    const factory: {
+        name: string;
+        canHandle?: (requestName: string) => boolean;
+        createHandler: () => HandlerFunction;
+    } = {
         name: name,
-        canHandle: canHandle,
         createHandler: function (): HandlerFunction {
             return handler;
         },
     };
 
-    return factory;
+    if (canHandle) {
+        factory.canHandle = canHandle;
+    }
+
+    return factory as HandlerFactory;
 }
