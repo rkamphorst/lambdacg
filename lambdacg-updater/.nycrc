@@ -5,6 +5,7 @@
         "src/**/*.ts"
     ],
     "exclude": [
+        "src/index.ts",
         "test/**/*"
     ],
     "reporter": [
