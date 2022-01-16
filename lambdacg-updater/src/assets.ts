@@ -5,23 +5,23 @@ import { PassThrough, Readable } from "node:stream";
 import fsu from "./fs-utils";
 
 const findPackageRootAsync = async (startPath: string): Promise<string> => {
-    let curPath = path.resolve(startPath);
-
     if (!(await fsu.directoryExistsAsync(startPath))) {
         throw new Error(`Path is not a directory: ${startPath}`);
     }
 
-    while (true) {
+    let parentPath = path.resolve(startPath)
+    let curPath = parentPath;
+
+    do {
+        curPath = parentPath;
         if (await fsu.fileExistsAsync(path.join(curPath, "package.json"))) {
             return curPath;
         }
 
-        const parentPath = path.dirname(curPath);
-        if (!(parentPath.length < curPath.length)) {
-            throw new Error(`Path is not in a package: ${startPath}`);
-        }
-        curPath = parentPath;
-    }
+        parentPath = path.dirname(curPath);
+    } while (parentPath.length < curPath.length)
+
+    throw new Error(`Path is not in a package: ${startPath}`);
 };
 
 const getAssetStream = (

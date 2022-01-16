@@ -356,29 +356,6 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
         }
     }
 
-    #getLatestObjectVersionOrThrow() {
-        if (this.#latestVersion === undefined) {
-            throw new Error("No latest version");
-        }
-
-        if (this.#latestVersion.IsDeleteMarker) {
-            throw new Error("Latest version is a delete marker");
-        }
-        return this.#latestVersion;
-    }
-
-    #getPreviousObjectVersionOrThrow() {
-        if (!this.#previousObjectVersion) {
-            throw new Error("No previous version");
-        }
-
-        if (this.#isPreviousDeleted) {
-            throw new Error("Previous version is a delete marker");
-        }
-
-        return this.#previousObjectVersion;
-    }
-
     #getPreviousObjectVersionOrUndefined() {
         if (this.#isPreviousDeleted) {
             return undefined;
@@ -386,17 +363,31 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
         return this.#previousObjectVersion;
     }
 
-    #getLatestObjectBucketKeyVersionOrThrow(): BucketKeyVersion {
+    #getLatestObjectBucketKeyVersionOrUndefinedIfDeleted():
+        | BucketKeyVersion
+        | undefined {
+        if (this.#latestVersion === undefined) {
+            throw new Error("No latest version");
+        }
+
+        if (this.#latestVersion.IsDeleteMarker) {
+            return undefined;
+        }
+
         return {
             ...this.#bucketAndKey,
-            VersionId: this.#getLatestObjectVersionOrThrow().VersionId,
+            VersionId: this.#latestVersion.VersionId,
         };
     }
 
     #getPreviousObjectBucketKeyVersionOrThrow(): BucketKeyVersion {
+        if (!this.#previousObjectVersion) {
+            throw new Error("No previous version");
+        }
+
         return {
             ...this.#bucketAndKey,
-            VersionId: this.#getPreviousObjectVersionOrThrow().VersionId,
+            VersionId: this.#previousObjectVersion.VersionId,
         };
     }
 
@@ -413,7 +404,7 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
 
     get isDeleted(): boolean {
         if (!this.#latestVersion) {
-            throw new Error("No latest versino");
+            throw new Error("No latest version");
         }
         return this.#latestVersion.IsDeleteMarker;
     }
@@ -437,19 +428,20 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
 
     getUpdateMarkAsync(): Promise<string | undefined> {
         const internalGetUpdateMarkAsync = async () => {
-            const params:
-                | { Update: UpdateType; TagBucketKeyVersion: BucketKeyVersion }
-                | undefined = this.isDeleted
-                ? {
-                      Update: ObjectDeletion,
-                      TagBucketKeyVersion:
-                          this.#getPreviousObjectBucketKeyVersionOrThrow(),
-                  }
-                : {
-                      Update: ObjectChange,
-                      TagBucketKeyVersion:
-                          this.#getLatestObjectBucketKeyVersionOrThrow(),
-                  };
+            const latestBucketKeyVersion =
+                this.#getLatestObjectBucketKeyVersionOrUndefinedIfDeleted();
+
+            const params =
+                latestBucketKeyVersion !== undefined
+                    ? {
+                          Update: ObjectChange,
+                          TagBucketKeyVersion: latestBucketKeyVersion,
+                      }
+                    : {
+                          Update: ObjectDeletion,
+                          TagBucketKeyVersion:
+                              this.#getPreviousObjectBucketKeyVersionOrThrow(),
+                      };
 
             const tags = await this.#s3Client
                 .getObjectTagging({
@@ -468,12 +460,14 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
     }
 
     async markUpdatedAsync(updateMark: string) {
-        if (!this.isDeleted) {
+        const latestBucketKeyVersion =
+            this.#getLatestObjectBucketKeyVersionOrUndefinedIfDeleted();
+        if (latestBucketKeyVersion !== undefined) {
             await Promise.all([
-                this.#setUpdateMarkAsync(
-                    this.#getLatestObjectBucketKeyVersionOrThrow(),
-                    { Update: ObjectChange, Mark: updateMark }
-                ),
+                this.#setUpdateMarkAsync(latestBucketKeyVersion, {
+                    Update: ObjectChange,
+                    Mark: updateMark,
+                }),
                 this.#clearUpdateMarkAsync(
                     this.#getPreviousObjectBucketKeyVersionOrUndefined()
                 ),
@@ -523,8 +517,13 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
     }
 
     getDownloadStream(): Readable {
+        const latestBucketKeyVersion =
+            this.#getLatestObjectBucketKeyVersionOrUndefinedIfDeleted();
+        if (latestBucketKeyVersion === undefined) {
+            throw new Error("This tarball is deleted");
+        }
         return this.#s3Client
-            .getObject({ ...this.#getLatestObjectBucketKeyVersionOrThrow() })
+            .getObject({ ...latestBucketKeyVersion })
             .createReadStream();
     }
 }
