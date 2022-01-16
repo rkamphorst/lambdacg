@@ -178,7 +178,7 @@ class AwsTestSession {
             if (lastUpdateStatus !== "__initial__") {
                 this.#inform(`Awaiting readiness of lambda ${functionName}`);
                 await new Promise<void>((resolve) =>
-                    setTimeout(() => resolve(), 1000)
+                    setTimeout(() => resolve(), 3000)
                 );
             }
             lastUpdateStatus = (
