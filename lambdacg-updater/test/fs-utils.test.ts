@@ -1,10 +1,12 @@
 import { expect } from "chai";
 import fs from "node:fs/promises";
 import { promisify } from "node:util";
+import Sinon from "sinon";
 import { tmpName } from "tmp";
 
 import fsu from "../src/fs-utils";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
+import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
 
 const tmpNameAsync = promisify(tmpName);
@@ -13,7 +15,7 @@ const { fileExistsAsync, directoryExistsAsync, tryRemoveFileAsync } = fsu;
 
 describe("FsUtils", () => {
     describeObject({ fileExistsAsync }, function () {
-        it("Should return true if it exists and is a file", async () => {
+        it("Should return true if it exists and is a file", async function () {
             const filename = await tmpNameAsync();
             try {
                 await fs.writeFile(filename, "data", "utf-8");
@@ -25,7 +27,7 @@ describe("FsUtils", () => {
                 await fs.rm(filename, { recursive: true, force: true });
             }
         });
-        it("Should return false if it exists but is not a file", async () => {
+        it("Should return false if it exists but is not a file", async function () {
             const dirname = await createTemporaryDirAsync();
 
             try {
@@ -37,10 +39,22 @@ describe("FsUtils", () => {
             }
         });
 
-        it("Should return false if it does not exist", async () => {
+        it("Should return false if it does not exist", async function () {
             const filename = await tmpNameAsync();
             const result = await fsu.fileExistsAsync(filename);
             expect(result).to.be.false;
+        });
+        it("Should throw if filesystem throws a weird error", async function () {
+            const statStub = Sinon.stub(fs, "stat").throws(
+                new Error("Weird error")
+            );
+            const filename = await tmpNameAsync();
+
+            try {
+                await expectToThrowAsync(() => fsu.fileExistsAsync(filename));
+            } finally {
+                statStub.restore();
+            }
         });
     });
 

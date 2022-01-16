@@ -1,35 +1,39 @@
 import { Readable, Writable } from "node:stream";
 
-const isWriteStreamFinishedAsync = (writeStream: Writable) => {
+const isStreamFinishedAsync = (stream: Readable | Writable) => {
     return new Promise<void>((resolve, reject) => {
-        if (writeStream.writableFinished) {
-            resolve();
-            return;
-        }
-        writeStream.on("close", (err: unknown) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
+        let isRejectedOrResolved = false;
+
+        const rejectOrResolve = (err: unknown) => {
+            if (!isRejectedOrResolved) {
+                isRejectedOrResolved = true;
+                if (err !== undefined) {
+                    reject(err);
+                } else {
+                    resolve(err);
+                }
             }
-        });
+        };
+
+        stream.on("error", (err: unknown) =>
+            rejectOrResolve(err ?? new Error())
+        );
+        stream.on("close", (err: unknown) => rejectOrResolve(err));
     });
 };
 
+const isWriteStreamFinishedAsync = (writeStream: Writable) => {
+    if (writeStream.writableFinished) {
+        return Promise.resolve(true);
+    }
+    return isStreamFinishedAsync(writeStream);
+};
+
 const isReadStreamFinishedAsync = (readStream: Readable) => {
-    return new Promise<void>((resolve, reject) => {
-        if (readStream.readableEnded) {
-            resolve();
-            return;
-        }
-        readStream.on("close", (err: unknown) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
-    });
+    if (readStream.readableEnded) {
+        return Promise.resolve(true);
+    }
+    return isStreamFinishedAsync(readStream);
 };
 
 function streamToStringAsync(stream: Readable) {

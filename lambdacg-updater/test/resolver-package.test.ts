@@ -15,9 +15,13 @@ import {
     expectDirectoryToExistAsync,
     expectFileToExistAsync,
 } from "./lib/expect-file-to-exist";
+import { expectToThrow, expectToThrowAsync } from "./lib/expect-to-throw";
 import { getLogger } from "./lib/logger";
 import { describeClass, describeMember } from "./lib/mocha-utils";
-import { isWriteStreamFinishedAsync } from "./lib/stream-utils";
+import {
+    isReadStreamFinishedAsync,
+    isWriteStreamFinishedAsync,
+} from "./lib/stream-utils";
 
 const logger = getLogger();
 
@@ -68,6 +72,29 @@ describe("ResolverPackage", function () {
                 }
             }
             tmpDir = undefined;
+        });
+
+        describeMember<ResolverPackage>("addHandlerTarball", function () {
+            it("Should throw when tarball with same name was already added", function () {
+                const sut = new ResolverPackage(
+                    getMyPackageStream,
+                    npmInstallAsync
+                );
+
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("MyModule.tar.gz", () =>
+                        getModuleStream("my-module.tgz")
+                    )
+                );
+
+                expectToThrow(() =>
+                    sut.addHandlerTarball(
+                        new StubHandlerTarball("MyModule.tar.gz", () =>
+                            getModuleStream("my-module.tgz")
+                        )
+                    )
+                );
+            });
         });
 
         describeMember<ResolverPackage>(
@@ -245,6 +272,38 @@ describe("ResolverPackage", function () {
                         "his-module: hello test three modules",
                     ]);
                 });
+
+                it("Should throw an error if npm install throws an Error", async function () {
+                    const sut = new ResolverPackage(
+                        getMyPackageStream,
+                        async () => {
+                            throw new Error("npm-install-error");
+                        }
+                    );
+
+                    const zipStream =
+                        await sut.createLambdaCodeZipStreamAsync();
+                    const promise = isReadStreamFinishedAsync(zipStream);
+                    zipStream.resume();
+
+                    await expectToThrowAsync(() => promise);
+                });
+
+                it("Should throw an error if npm install throws a string", async function () {
+                    const sut = new ResolverPackage(
+                        getMyPackageStream,
+                        async () => {
+                            throw "npm-install-error";
+                        }
+                    );
+
+                    const zipStream =
+                        await sut.createLambdaCodeZipStreamAsync();
+                    const promise = isReadStreamFinishedAsync(zipStream);
+                    zipStream.resume();
+
+                    await expectToThrowAsync(() => promise);
+                });
             }
         );
 
@@ -285,6 +344,27 @@ describe("ResolverPackage", function () {
                             path: codeUnpackPath(),
                         })
                     )
+                );
+
+                await sut.cleanupAsync();
+
+                const dirContents = await fs.readdir(os.tmpdir());
+                const relativeTmpDir = path.relative(
+                    os.tmpdir(),
+                    tmpDir as string
+                );
+
+                expect(
+                    dirContents,
+                    "only the test tmp dir is still there"
+                ).to.have.deep.members([relativeTmpDir]);
+            });
+
+            it("Should not fail if nothing to clean up", async function () {
+                // not using the real npm install, because it invokes npm in a seperate shell
+                // that doesn't know about mockFs
+                const sut = new ResolverPackage(getMyPackageStream, () =>
+                    Promise.resolve()
                 );
 
                 await sut.cleanupAsync();
