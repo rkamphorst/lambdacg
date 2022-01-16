@@ -19,15 +19,14 @@ interface RepositoryTarballInterface {
 interface ResolverPackageInterface {
     addHandlerTarball(handlerTarball: RepositoryTarballInterface): void;
 
-    createCodeZipStreamAsync(): Promise<Readable>;
+    createCodeZipAsync(): Promise<Readable>;
 
     cleanupAsync(): Promise<void>;
 }
 
 interface UpdateTargetInterface {
-    uploadCodeZipStreamAsync(zipStream: Readable): Promise<void>;
+    updateCodeAsync(zipStream: Readable): Promise<void>;
 }
-
 interface UpdaterInterface {
     updateToLatestHandlersAsync(): Promise<void>;
 }

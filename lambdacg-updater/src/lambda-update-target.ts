@@ -27,7 +27,7 @@ class LambdaUpdateTarget implements UpdateTargetInterface {
         this.#lambdaClient = lambdaClient;
     }
 
-    async uploadCodeZipStreamAsync(zipStream: Readable): Promise<void> {
+    async updateCodeAsync(zipStream: Readable): Promise<void> {
         const { Bucket: s3Bucket, Prefix: s3Prefix } =
             await getBucketAndPrefixFromS3FolderUrl(this.#s3FolderUrl);
         const s3Key = `${s3Prefix}lambdacg-resolver-${uuid()}.zip`;

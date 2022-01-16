@@ -1,25 +1,48 @@
-// import { Updater } from "./updater";
-// import { S3TarballRepository } from "./s3-tarball-repository";
-// import { ResolverPackage } from "./resolver-package";
-// import { S3 } from "aws-sdk";
-// import { getAssetStream } from "./assets";
+import { Lambda, S3 } from "aws-sdk";
+
+import { getAssetStream } from "./assets";
+import { LambdaUpdateTarget } from "./lambda-update-target";
 import { npmInstallAsync } from "./npm-utils";
-// import { updateLambdaFunctionWithZipStreamAsync } from "./lambda-utils";
-// import {Readable} from "node:stream";
+import { ResolverPackage } from "./resolver-package";
+import { S3TarballRepository } from "./s3-tarball-repository";
+import { Updater } from "./updater";
 
-// const handlerFactoryS3 = "";
-// const lambdaCodeUploadS3 = "";
+const resolverPackageCodeAsset = "lambdacg-resolver.tgz";
+const targetLambdaName = "lambdacg-resolver";
 
-// const handleAsync = async () => {
+const handlerFactoryS3Folder = "";
+const targetLambdaCodeUploadS3Folder = "";
 
-//     const s3Client = new S3();
+const s3Client = new S3();
+const lambdaClient = new Lambda();
 
-//     const updater = new Updater(
-//         () => new S3TarballRepository(s3BucketPrefix, s3Client),
-//         () => new ResolverPackage(() => getAssetStream("lambdacg-resolver.tgz"), npmInstallAsync ),
-//         (codeZip:Readable) => updateLambdaFunctionWithZipStreamAsync()
-//         ))
+const createTarballRepository = () =>
+    S3TarballRepository.fromUrl(handlerFactoryS3Folder, s3Client);
 
-// }
+const createResolverPackage = () =>
+    new ResolverPackage(
+        () => getAssetStream(resolverPackageCodeAsset),
+        npmInstallAsync
+    );
 
-npmInstallAsync("C:\\dev\\lambdacg\\lambdacg-updater\\banaan", ["lodash"]);
+const createUpdateTarget = () =>
+    new LambdaUpdateTarget(
+        {
+            lambdaName: targetLambdaName,
+            s3FolderUrl: targetLambdaCodeUploadS3Folder,
+        },
+        s3Client,
+        lambdaClient
+    );
+
+const updater = new Updater(
+    createTarballRepository,
+    createResolverPackage,
+    createUpdateTarget
+);
+
+const handleAsync = async () => {
+    await updater.updateToLatestHandlersAsync();
+};
+
+export { handleAsync };

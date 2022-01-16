@@ -28,67 +28,62 @@ describe("LambdaUpdateTarget", async function () {
     let s3Bucket: string;
 
     describeClass({ LambdaUpdateTarget }, function () {
-        describeMember<LambdaUpdateTarget>(
-            "uploadCodeZipStreamAsync",
-            function () {
-                before(async () => {
-                    if (awsTestSession.hasAwsCredentials()) {
-                        const zipFileContents = await fs.readFile(
-                            path.join(dataDir, "index.zip")
+        describeMember<LambdaUpdateTarget>("updateCodeAsync", function () {
+            before(async () => {
+                if (awsTestSession.hasAwsCredentials()) {
+                    const zipFileContents = await fs.readFile(
+                        path.join(dataDir, "index.zip")
+                    );
+                    lambdaFunction =
+                        await awsTestSession.createLambdaAndAwaitReadinessAsync(
+                            zipFileContents
                         );
-                        lambdaFunction =
-                            await awsTestSession.createLambdaAndAwaitReadinessAsync(
-                                zipFileContents
-                            );
-                        s3Bucket = await awsTestSession.createS3BucketAsync();
+                    s3Bucket = await awsTestSession.createS3BucketAsync();
+                }
+            });
+
+            it(
+                "Should successfully update a lambda function",
+                awsTestSession.withAws(async function () {
+                    const tmpdir = await createTemporaryDirAsync();
+                    await fs.writeFile(
+                        path.join(tmpdir, "index.js"),
+                        'exports.handler = async function() { return { result: "updated" }; };\n'
+                    );
+
+                    const archive = archiver("zip");
+                    archive.directory(tmpdir, false);
+                    archive.finalize();
+
+                    const sut = new LambdaUpdateTarget(
+                        {
+                            lambdaName: lambdaFunction,
+                            s3FolderUrl: `s3://${s3Bucket}`,
+                        },
+                        awsTestSession.s3Client,
+                        awsTestSession.lambdaClient
+                    );
+
+                    try {
+                        await sut.updateCodeAsync(archive);
+                    } finally {
+                        await fs.rm(tmpdir, {
+                            recursive: true,
+                            force: true,
+                        });
                     }
-                });
 
-                it(
-                    "Should successfully update a lambda function",
-                    awsTestSession.withAws(async function () {
-                        const tmpdir = await createTemporaryDirAsync();
-                        await fs.writeFile(
-                            path.join(tmpdir, "index.js"),
-                            'exports.handler = async function() { return { result: "updated" }; };\n'
-                        );
+                    await awsTestSession.awaitLambdaReadiness(lambdaFunction);
 
-                        const archive = archiver("zip");
-                        archive.directory(tmpdir, false);
-                        archive.finalize();
+                    const response = await awsTestSession.lambdaClient
+                        .invoke({ FunctionName: lambdaFunction })
+                        .promise();
 
-                        const sut = new LambdaUpdateTarget(
-                            {
-                                lambdaName: lambdaFunction,
-                                s3FolderUrl: `s3://${s3Bucket}`,
-                            },
-                            awsTestSession.s3Client,
-                            awsTestSession.lambdaClient
-                        );
-
-                        try {
-                            await sut.uploadCodeZipStreamAsync(archive);
-                        } finally {
-                            await fs.rm(tmpdir, {
-                                recursive: true,
-                                force: true,
-                            });
-                        }
-
-                        await awsTestSession.awaitLambdaReadiness(
-                            lambdaFunction
-                        );
-
-                        const response = await awsTestSession.lambdaClient
-                            .invoke({ FunctionName: lambdaFunction })
-                            .promise();
-
-                        expect(
-                            JSON.parse(response.Payload as string)
-                        ).to.be.deep.equal({ result: "updated" });
-                    })
-                );
-            }
-        );
+                    expect(
+                        JSON.parse(response.Payload as string)
+                    ).to.be.deep.equal({ result: "updated" });
+                })
+            );
+        });
     });
 });

@@ -97,213 +97,204 @@ describe("ResolverPackage", function () {
             });
         });
 
-        describeMember<ResolverPackage>(
-            "createCodeZipStreamAsync",
-            function () {
-                it("Should create a correct zip file if no modules are added", async function () {
-                    const sut = new ResolverPackage(
-                        getMyPackageStream,
-                        npmInstallAsync
-                    );
+        describeMember<ResolverPackage>("createCodeZipAsync", function () {
+            it("Should create a correct zip file if no modules are added", async function () {
+                const sut = new ResolverPackage(
+                    getMyPackageStream,
+                    npmInstallAsync
+                );
 
-                    await isWriteStreamFinishedAsync(
-                        (
-                            await sut.createCodeZipStreamAsync()
-                        ).pipe(
-                            unzipper.Extract({
-                                path: codeUnpackPath(),
-                            })
+                await isWriteStreamFinishedAsync(
+                    (
+                        await sut.createCodeZipAsync()
+                    ).pipe(
+                        unzipper.Extract({
+                            path: codeUnpackPath(),
+                        })
+                    )
+                );
+
+                await expectFileToExistAsync("index.js", codeUnpackPath());
+                await expectFileToExistAsync("package.json", codeUnpackPath());
+
+                const packageInfo = JSON.parse(
+                    (
+                        await fs.readFile(
+                            path.join(codeUnpackPath(), "package.json")
                         )
-                    );
+                    ).toString("utf-8")
+                ) as { [key: string]: unknown };
 
-                    await expectFileToExistAsync("index.js", codeUnpackPath());
-                    await expectFileToExistAsync(
-                        "package.json",
-                        codeUnpackPath()
-                    );
+                expect(packageInfo["name"]).to.be.equal("my-package");
+            });
 
-                    const packageInfo = JSON.parse(
-                        (
-                            await fs.readFile(
-                                path.join(codeUnpackPath(), "package.json")
-                            )
-                        ).toString("utf-8")
-                    ) as { [key: string]: unknown };
+            it("Should create a correct zip file if multiple modules are added", async function () {
+                const sut = new ResolverPackage(
+                    getMyPackageStream,
+                    npmInstallAsync
+                );
 
-                    expect(packageInfo["name"]).to.be.equal("my-package");
-                });
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("MyModule.tar.gz", () =>
+                        getModuleStream("my-module.tgz")
+                    )
+                );
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("HerModule.tar.gz", () =>
+                        getModuleStream("her-module.tgz")
+                    )
+                );
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("HisModule.tar.gz", () =>
+                        getModuleStream("his-module.tgz")
+                    )
+                );
 
-                it("Should create a correct zip file if multiple modules are added", async function () {
-                    const sut = new ResolverPackage(
-                        getMyPackageStream,
-                        npmInstallAsync
-                    );
+                await isWriteStreamFinishedAsync(
+                    (
+                        await sut.createCodeZipAsync()
+                    ).pipe(
+                        unzipper.Extract({
+                            path: codeUnpackPath(),
+                        })
+                    )
+                );
 
-                    sut.addHandlerTarball(
-                        new StubHandlerTarball("MyModule.tar.gz", () =>
-                            getModuleStream("my-module.tgz")
+                await expectFileToExistAsync("index.js", codeUnpackPath());
+                await expectFileToExistAsync("package.json", codeUnpackPath());
+
+                const packageInfo = JSON.parse(
+                    (
+                        await fs.readFile(
+                            path.join(codeUnpackPath(), "package.json")
                         )
-                    );
-                    sut.addHandlerTarball(
-                        new StubHandlerTarball("HerModule.tar.gz", () =>
-                            getModuleStream("her-module.tgz")
-                        )
-                    );
-                    sut.addHandlerTarball(
-                        new StubHandlerTarball("HisModule.tar.gz", () =>
-                            getModuleStream("his-module.tgz")
-                        )
-                    );
+                    ).toString("utf-8")
+                ) as { [key: string]: unknown };
 
-                    await isWriteStreamFinishedAsync(
-                        (
-                            await sut.createCodeZipStreamAsync()
-                        ).pipe(
-                            unzipper.Extract({
-                                path: codeUnpackPath(),
-                            })
-                        )
-                    );
+                expect(packageInfo["name"]).to.be.equal("my-package");
 
-                    await expectFileToExistAsync("index.js", codeUnpackPath());
-                    await expectFileToExistAsync(
-                        "package.json",
-                        codeUnpackPath()
-                    );
+                await expectDirectoryToExistAsync(
+                    "node_modules/my-module",
+                    codeUnpackPath()
+                );
+                await expectDirectoryToExistAsync(
+                    "node_modules/her-module",
+                    codeUnpackPath()
+                );
+                await expectDirectoryToExistAsync(
+                    "node_modules/his-module",
+                    codeUnpackPath()
+                );
+            });
 
-                    const packageInfo = JSON.parse(
-                        (
-                            await fs.readFile(
-                                path.join(codeUnpackPath(), "package.json")
-                            )
-                        ).toString("utf-8")
-                    ) as { [key: string]: unknown };
+            it("Should create a callable package if one module is added", async function () {
+                const sut = new ResolverPackage(
+                    getMyPackageStream,
+                    npmInstallAsync
+                );
 
-                    expect(packageInfo["name"]).to.be.equal("my-package");
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("MyModule.tar.gz", () =>
+                        getModuleStream("my-module.tgz")
+                    )
+                );
 
-                    await expectDirectoryToExistAsync(
-                        "node_modules/my-module",
-                        codeUnpackPath()
-                    );
-                    await expectDirectoryToExistAsync(
-                        "node_modules/her-module",
-                        codeUnpackPath()
-                    );
-                    await expectDirectoryToExistAsync(
-                        "node_modules/his-module",
-                        codeUnpackPath()
-                    );
-                });
+                await isWriteStreamFinishedAsync(
+                    (
+                        await sut.createCodeZipAsync()
+                    ).pipe(
+                        unzipper.Extract({
+                            path: codeUnpackPath(),
+                        })
+                    )
+                );
 
-                it("Should create a callable package if one module is added", async function () {
-                    const sut = new ResolverPackage(
-                        getMyPackageStream,
-                        npmInstallAsync
-                    );
+                const imported = (await import(
+                    path.join(codeUnpackPath(), "index.js")
+                )) as { default: (message: string) => string[] };
+                const importedFunction = imported.default;
+                const result = importedFunction("hello test one module");
 
-                    sut.addHandlerTarball(
-                        new StubHandlerTarball("MyModule.tar.gz", () =>
-                            getModuleStream("my-module.tgz")
-                        )
-                    );
+                expect(result).to.have.members([
+                    "my-module: hello test one module",
+                ]);
+            });
 
-                    await isWriteStreamFinishedAsync(
-                        (
-                            await sut.createCodeZipStreamAsync()
-                        ).pipe(
-                            unzipper.Extract({
-                                path: codeUnpackPath(),
-                            })
-                        )
-                    );
+            it("Should create a callable package if three modules are added", async function () {
+                const sut = new ResolverPackage(
+                    getMyPackageStream,
+                    npmInstallAsync
+                );
 
-                    const imported = (await import(
-                        path.join(codeUnpackPath(), "index.js")
-                    )) as { default: (message: string) => string[] };
-                    const importedFunction = imported.default;
-                    const result = importedFunction("hello test one module");
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("MyModule.tar.gz", () =>
+                        getModuleStream("my-module.tgz")
+                    )
+                );
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("HerModule.tar.gz", () =>
+                        getModuleStream("her-module.tgz")
+                    )
+                );
+                sut.addHandlerTarball(
+                    new StubHandlerTarball("HisModule.tar.gz", () =>
+                        getModuleStream("his-module.tgz")
+                    )
+                );
 
-                    expect(result).to.have.members([
-                        "my-module: hello test one module",
-                    ]);
-                });
+                await isWriteStreamFinishedAsync(
+                    (
+                        await sut.createCodeZipAsync()
+                    ).pipe(
+                        unzipper.Extract({
+                            path: codeUnpackPath(),
+                        })
+                    )
+                );
 
-                it("Should create a callable package if three modules are added", async function () {
-                    const sut = new ResolverPackage(
-                        getMyPackageStream,
-                        npmInstallAsync
-                    );
+                const imported = (await import(
+                    path.join(codeUnpackPath(), "index.js")
+                )) as { default: (message: string) => string[] };
+                const importedFunction = imported.default;
+                const result = importedFunction("hello test three modules");
 
-                    sut.addHandlerTarball(
-                        new StubHandlerTarball("MyModule.tar.gz", () =>
-                            getModuleStream("my-module.tgz")
-                        )
-                    );
-                    sut.addHandlerTarball(
-                        new StubHandlerTarball("HerModule.tar.gz", () =>
-                            getModuleStream("her-module.tgz")
-                        )
-                    );
-                    sut.addHandlerTarball(
-                        new StubHandlerTarball("HisModule.tar.gz", () =>
-                            getModuleStream("his-module.tgz")
-                        )
-                    );
+                expect(result).to.have.members([
+                    "my-module: hello test three modules",
+                    "her-module: hello test three modules",
+                    "his-module: hello test three modules",
+                ]);
+            });
 
-                    await isWriteStreamFinishedAsync(
-                        (
-                            await sut.createCodeZipStreamAsync()
-                        ).pipe(
-                            unzipper.Extract({
-                                path: codeUnpackPath(),
-                            })
-                        )
-                    );
+            it("Should throw an error if npm install throws an Error", async function () {
+                const sut = new ResolverPackage(
+                    getMyPackageStream,
+                    async () => {
+                        throw new Error("npm-install-error");
+                    }
+                );
 
-                    const imported = (await import(
-                        path.join(codeUnpackPath(), "index.js")
-                    )) as { default: (message: string) => string[] };
-                    const importedFunction = imported.default;
-                    const result = importedFunction("hello test three modules");
+                const zipStream = await sut.createCodeZipAsync();
+                const promise = isReadStreamFinishedAsync(zipStream);
+                zipStream.resume();
 
-                    expect(result).to.have.members([
-                        "my-module: hello test three modules",
-                        "her-module: hello test three modules",
-                        "his-module: hello test three modules",
-                    ]);
-                });
+                await expectToThrowAsync(() => promise);
+            });
 
-                it("Should throw an error if npm install throws an Error", async function () {
-                    const sut = new ResolverPackage(
-                        getMyPackageStream,
-                        async () => {
-                            throw new Error("npm-install-error");
-                        }
-                    );
+            it("Should throw an error if npm install throws a string", async function () {
+                const sut = new ResolverPackage(
+                    getMyPackageStream,
+                    async () => {
+                        throw "npm-install-error";
+                    }
+                );
 
-                    const zipStream = await sut.createCodeZipStreamAsync();
-                    const promise = isReadStreamFinishedAsync(zipStream);
-                    zipStream.resume();
+                const zipStream = await sut.createCodeZipAsync();
+                const promise = isReadStreamFinishedAsync(zipStream);
+                zipStream.resume();
 
-                    await expectToThrowAsync(() => promise);
-                });
-
-                it("Should throw an error if npm install throws a string", async function () {
-                    const sut = new ResolverPackage(
-                        getMyPackageStream,
-                        async () => {
-                            throw "npm-install-error";
-                        }
-                    );
-
-                    const zipStream = await sut.createCodeZipStreamAsync();
-                    const promise = isReadStreamFinishedAsync(zipStream);
-                    zipStream.resume();
-
-                    await expectToThrowAsync(() => promise);
-                });
-            }
-        );
+                await expectToThrowAsync(() => promise);
+            });
+        });
 
         describeMember<ResolverPackage>("cleanupAsync", function () {
             before(function () {
@@ -336,7 +327,7 @@ describe("ResolverPackage", function () {
 
                 await isWriteStreamFinishedAsync(
                     (
-                        await sut.createCodeZipStreamAsync()
+                        await sut.createCodeZipAsync()
                     ).pipe(
                         unzipper.Extract({
                             path: codeUnpackPath(),
