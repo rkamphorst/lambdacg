@@ -8,15 +8,17 @@ const getBucketAndPrefixOrKeyFromS3Url = (
 
     const reResult = s3Regex.exec(s3Url);
 
-    if (!reResult?.groups) {
+    if (!reResult) {
         throw new Error(`This is not a s3 URL: ${s3Url}`);
     }
 
-    const bucket = reResult.groups.bucket;
+    const groups = reResult.groups as { bucket: string, prefixOrKey: string|undefined };
+
+    const bucket = groups.bucket;
     const prefixOrKey =
-        reResult.groups.prefixOrKey?.length === 0
+        groups.prefixOrKey?.length === 0
             ? undefined
-            : reResult.groups.prefixOrKey;
+            : groups.prefixOrKey;
 
     return {
         Bucket: bucket,

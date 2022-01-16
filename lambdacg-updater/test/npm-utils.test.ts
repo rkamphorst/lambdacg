@@ -37,8 +37,9 @@ describe("NpmUtils", function () {
         }
 
         for (const invalidPackageTgz of [
-            "invalidpackage.tgz",
-            "invalidpackage1.tgz",
+            "invalidpackage-wrong-layout.tgz",
+            "invalidpackage-no-packagejson.tgz",
+            "invalidpackage-invalid-packagejson.tgz",
         ]) {
             const packagePath = path.join(dataDir, invalidPackageTgz);
 
@@ -110,8 +111,9 @@ describe("NpmUtils", function () {
         }
 
         for (const invalidPackageTgz of [
-            "invalidpackage.tgz",
-            "invalidpackage1.tgz",
+            "invalidpackage-wrong-layout.tgz",
+            "invalidpackage-no-packagejson.tgz",
+            "invalidpackage-invalid-packagejson.tgz"
         ]) {
             const packagePath = path.join(dataDir, invalidPackageTgz);
             it(`Should refuse to store ${invalidPackageTgz} and throw an exception`, async function () {
