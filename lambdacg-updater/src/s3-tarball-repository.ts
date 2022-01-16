@@ -260,6 +260,18 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
         return `s3://${this.#bucketAndKey.Bucket}/${this.#bucketAndKey.Key}`;
     }
 
+    get latestVersion() {
+        return this.#latestVersion;
+    }
+
+    get previousDeleteMarker() {
+        return this.#previousDeleteMarker;
+    }
+
+    get previousObjectversion() {
+        return this.#previousObjectVersion;
+    }
+
     addVersion(objectVersion: S3.ObjectVersion) {
         const { VersionId: versionId, LastModified: lastModified } =
             getVersionIdAndLastModifiedOrThrow(objectVersion);
@@ -356,13 +368,6 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
         }
     }
 
-    #getPreviousObjectVersionOrUndefined() {
-        if (this.#isPreviousDeleted) {
-            return undefined;
-        }
-        return this.#previousObjectVersion;
-    }
-
     #getLatestObjectBucketKeyVersionOrUndefinedIfDeleted():
         | BucketKeyVersion
         | undefined {
@@ -381,23 +386,30 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
     }
 
     #getPreviousObjectBucketKeyVersionOrThrow(): BucketKeyVersion {
-        if (!this.#previousObjectVersion) {
-            throw new Error("No previous version");
+        const result = this.#getPreviousObjectBucketKeyVersionOrUndefined();
+
+        if (!result) {
+            throw new Error(
+                "No previous version, or previous version was deleted"
+            );
         }
 
-        return {
-            ...this.#bucketAndKey,
-            VersionId: this.#previousObjectVersion.VersionId,
-        };
+        return result;
     }
 
     #getPreviousObjectBucketKeyVersionOrUndefined():
         | BucketKeyVersion
         | undefined {
-        const versionId =
-            this.#getPreviousObjectVersionOrUndefined()?.VersionId;
-        if (versionId !== undefined) {
-            return { ...this.#bucketAndKey, VersionId: versionId };
+        if (
+            this.#previousObjectVersion &&
+            (!this.#previousDeleteMarker ||
+                this.#previousObjectVersion.LastModified >
+                    this.#previousDeleteMarker.LastModified)
+        ) {
+            return {
+                ...this.#bucketAndKey,
+                VersionId: this.#previousObjectVersion.VersionId,
+            };
         }
         return undefined;
     }
@@ -407,18 +419,6 @@ class S3RepositoryTarball implements RepositoryTarballInterface {
             throw new Error("No latest version");
         }
         return this.#latestVersion.IsDeleteMarker;
-    }
-
-    get #isPreviousDeleted(): boolean | undefined {
-        if (this.#previousDeleteMarker && this.#previousObjectVersion) {
-            if (
-                this.#previousDeleteMarker.LastModified >
-                this.#previousObjectVersion.LastModified
-            ) {
-                return true;
-            }
-        }
-        return false;
     }
 
     get name(): string {

@@ -314,6 +314,7 @@ describe("S3TarballRepository", async function () {
                 s3ClientMock.setupListObjectVersions(undefined, [
                     "key1.tgz",
                     "key2.tgz",
+                    "key3.tgz",
                 ]);
                 s3ClientMock.setupGetObjectTagging("key1.tgz", {
                     "lambdacg-update": "1991-01-01T01:00:00Z",
@@ -321,6 +322,10 @@ describe("S3TarballRepository", async function () {
                 s3ClientMock.setupGetObjectTagging("key2.tgz", {
                     "lambdacg-update": "1991-01-01T01:01:00Z",
                 });
+                s3ClientMock.setupGetObjectTagging("key3.tgz", {
+                    "lambdacg-update": "1991-01-01T01:00:30Z",
+                });
+
                 const s3Repo = S3TarballRepository.fromUrl(
                     "s3://s3Bucket",
                     s3ClientMock.object
@@ -423,6 +428,13 @@ describe("S3TarballRepository", async function () {
                         IsDeleted: false,
                         IsLatest: false,
                         LastModified: new Date("1990-01-01T01:08:00Z"),
+                    },
+                    {
+                        Key: "key3.tgz",
+                        VersionId: "previous-version",
+                        IsDeleted: true,
+                        IsLatest: false,
+                        LastModified: new Date("1990-01-01T01:04:00Z"),
                     },
                 ]);
 
@@ -545,7 +557,26 @@ describe("S3TarballRepository", async function () {
                     });
                 });
             });
-            it("Should throw if latest version and latest version aldready set", function () {
+            it("Should set the latest version", function () {
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "key.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addVersion({
+                    Key: "key.tgz",
+                    IsLatest: true,
+                    LastModified: new Date("1990-01-01T00:00:00Z"),
+                    VersionId: "latest-version",
+                });
+
+                expect(s3Tarball.latestVersion).to.be.deep.equal({
+                    LastModified: new Date("1990-01-01T00:00:00Z"),
+                    VersionId: "latest-version",
+                    IsDeleteMarker: false,
+                });
+            });
+            it("Should throw if latest version and latest version already set", function () {
                 const s3ClientMock = new S3ClientMock();
                 const s3Tarball = new S3RepositoryTarball(
                     { Bucket: "s3Bucket", Key: "key.tgz" },
@@ -564,6 +595,158 @@ describe("S3TarballRepository", async function () {
                         LastModified: new Date("1990-01-02T00:00:00Z"),
                         VersionId: "latest-version2",
                     });
+                });
+            });
+            it("Should keep track of the youngest previous version", function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "blah.tgz" },
+                    s3ClientMock.object
+                );
+
+                // Act
+                s3Tarball.addVersion({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "first-previous-version",
+                    LastModified: new Date("1992-01-01T02:00:00Z"),
+                });
+                s3Tarball.addVersion({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "second-previous-version",
+                    LastModified: new Date("1992-01-01T01:00:00Z"),
+                });
+                s3Tarball.addVersion({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "third-previous-version",
+                    LastModified: new Date("1992-01-02T01:00:00Z"),
+                });
+                s3Tarball.addVersion({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "fourth-previous-version",
+                    LastModified: new Date("1992-01-01T01:15:00Z"),
+                });
+
+                expect(s3Tarball.previousObjectversion).to.be.deep.equal({
+                    VersionId: "third-previous-version",
+                    LastModified: new Date("1992-01-02T01:00:00Z"),
+                });
+            });
+        });
+
+        describeMember<S3RepositoryTarball>("addDeleteMarker", function () {
+            it("Should throw if versionId not supplied", function () {
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "key.tgz" },
+                    s3ClientMock.object
+                );
+                expectToThrow(() => {
+                    s3Tarball.addDeleteMarker({
+                        Key: "key.tgz",
+                        IsLatest: true,
+                        LastModified: new Date("1990-01-01T00:00:00Z"),
+                    });
+                });
+            });
+            it("Should throw if lastModified not supplied", function () {
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "key.tgz" },
+                    s3ClientMock.object
+                );
+                expectToThrow(() => {
+                    s3Tarball.addDeleteMarker({
+                        Key: "key.tgz",
+                        IsLatest: true,
+                        VersionId: "latest-version",
+                    });
+                });
+            });
+            it("Should set the latest version", function () {
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "key.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addDeleteMarker({
+                    Key: "key.tgz",
+                    IsLatest: true,
+                    LastModified: new Date("1990-01-01T00:00:00Z"),
+                    VersionId: "latest-version",
+                });
+
+                expect(s3Tarball.latestVersion).to.be.deep.equal({
+                    LastModified: new Date("1990-01-01T00:00:00Z"),
+                    VersionId: "latest-version",
+                    IsDeleteMarker: true,
+                });
+            });
+
+            it("Should throw if latest version and latest version already set", function () {
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "key.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addVersion({
+                    Key: "key.tgz",
+                    IsLatest: true,
+                    LastModified: new Date("1990-01-01T00:00:00Z"),
+                    VersionId: "latest-version",
+                });
+                expectToThrow(() => {
+                    s3Tarball.addDeleteMarker({
+                        Key: "key.tgz",
+                        IsLatest: true,
+                        LastModified: new Date("1990-01-02T00:00:00Z"),
+                        VersionId: "latest-version2",
+                    });
+                });
+            });
+            it("Should keep track of the youngest previous version", function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "blah.tgz" },
+                    s3ClientMock.object
+                );
+
+                // Act
+                s3Tarball.addDeleteMarker({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "first-previous-version",
+                    LastModified: new Date("1992-01-01T02:00:00Z"),
+                });
+                s3Tarball.addDeleteMarker({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "second-previous-version",
+                    LastModified: new Date("1992-01-01T01:00:00Z"),
+                });
+                s3Tarball.addDeleteMarker({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "third-previous-version",
+                    LastModified: new Date("1992-01-02T01:00:00Z"),
+                });
+                s3Tarball.addDeleteMarker({
+                    Key: "blah.tgz",
+                    IsLatest: false,
+                    VersionId: "fourth-previous-version",
+                    LastModified: new Date("1992-01-01T01:15:00Z"),
+                });
+
+                expect(s3Tarball.previousDeleteMarker).to.be.deep.equal({
+                    VersionId: "third-previous-version",
+                    LastModified: new Date("1992-01-02T01:00:00Z"),
                 });
             });
         });
@@ -1056,10 +1239,27 @@ describe("S3TarballRepository", async function () {
 
                 expect(result).to.be.equal("content-of-object");
             });
+            it("Should throw if latest version is delete marker", function () {
+                // Arrange
+                const s3ClientMock = new S3ClientMock();
+                const s3Tarball = new S3RepositoryTarball(
+                    { Bucket: "s3Bucket", Key: "blah.tgz" },
+                    s3ClientMock.object
+                );
+                s3Tarball.addDeleteMarker({
+                    Key: "blah.tgz",
+                    IsLatest: true,
+                    VersionId: "latest-version",
+                    LastModified: new Date("1992-01-01T01:00:00Z"),
+                });
+
+                // Act & Assert
+                expectToThrow(() => s3Tarball.getDownloadStream());
+            });
         });
 
-        describeMember<S3RepositoryTarball>("isDeleted", function() {
-            it("Should return true if latest version is deleted", function() {
+        describeMember<S3RepositoryTarball>("isDeleted", function () {
+            it("Should return true if latest version is deleted", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
                 const s3Tarball = new S3RepositoryTarball(
@@ -1074,13 +1274,12 @@ describe("S3TarballRepository", async function () {
                 });
 
                 // Act
-                var result = s3Tarball.isDeleted;
-
+                const result = s3Tarball.isDeleted;
 
                 // Assert
                 expect(result).to.be.true;
             });
-            it("Should return false if latest version is not a delete marker", function() {
+            it("Should return false if latest version is not a delete marker", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
                 const s3Tarball = new S3RepositoryTarball(
@@ -1095,13 +1294,12 @@ describe("S3TarballRepository", async function () {
                 });
 
                 // Act
-                var result = s3Tarball.isDeleted;
-
+                const result = s3Tarball.isDeleted;
 
                 // Assert
                 expect(result).to.be.false;
             });
-            it("Should throw if latest version not set", function() {
+            it("Should throw if latest version not set", function () {
                 // Arrange
                 const s3ClientMock = new S3ClientMock();
                 const s3Tarball = new S3RepositoryTarball(
@@ -1118,6 +1316,6 @@ describe("S3TarballRepository", async function () {
                 // Act & Assert
                 expectToThrow(() => s3Tarball.isDeleted);
             });
-        })
+        });
     });
 });

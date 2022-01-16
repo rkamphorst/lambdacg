@@ -9,7 +9,7 @@ const findPackageRootAsync = async (startPath: string): Promise<string> => {
         throw new Error(`Path is not a directory: ${startPath}`);
     }
 
-    let parentPath = path.resolve(startPath)
+    let parentPath = path.resolve(startPath);
     let curPath = parentPath;
 
     do {
@@ -19,7 +19,7 @@ const findPackageRootAsync = async (startPath: string): Promise<string> => {
         }
 
         parentPath = path.dirname(curPath);
-    } while (parentPath.length < curPath.length)
+    } while (parentPath.length < curPath.length);
 
     throw new Error(`Path is not in a package: ${startPath}`);
 };
