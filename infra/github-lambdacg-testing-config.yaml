@@ -77,6 +77,7 @@ Resources:
         - sigstore
       ThumbprintList:
         - a031c46782e6e6c662c2c87c76da9aa62ccabd8e
+        - 6938FD4D98BAB03FAADB97B34396831E3780AEA1
 
 Outputs:
   Role:
