@@ -281,8 +281,7 @@ describe("ResolverPackage", function () {
                         }
                     );
 
-                    const zipStream =
-                        await sut.createCodeZipStreamAsync();
+                    const zipStream = await sut.createCodeZipStreamAsync();
                     const promise = isReadStreamFinishedAsync(zipStream);
                     zipStream.resume();
 
@@ -297,8 +296,7 @@ describe("ResolverPackage", function () {
                         }
                     );
 
-                    const zipStream =
-                        await sut.createCodeZipStreamAsync();
+                    const zipStream = await sut.createCodeZipStreamAsync();
                     const promise = isReadStreamFinishedAsync(zipStream);
                     zipStream.resume();
 

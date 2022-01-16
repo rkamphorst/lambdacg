@@ -16,9 +16,11 @@ describe("S3Utils", async function () {
     describe("S3Utils", function () {
         describeObject({ getBucketAndPrefixFromS3FolderUrl }, function () {
             it("Should throw for URL http://[s3Bucket]/prefix/", async function () {
-                expectToThrow(() => getBucketAndPrefixFromS3FolderUrl(
-                    `http://s3-bucket/prefix/`
-                ));
+                expectToThrow(() =>
+                    getBucketAndPrefixFromS3FolderUrl(
+                        `http://s3-bucket/prefix/`
+                    )
+                );
             });
             it("Should throw for URL s3://[s3Bucket]/prefix", function () {
                 expectToThrow(() =>
@@ -39,9 +41,11 @@ describe("S3Utils", async function () {
 
         describeObject({ getBucketAndKeyFromS3ObjectUrl }, function () {
             it("Should throw for URL http://[s3Bucket]/object/key", async function () {
-                expectToThrow(() => getBucketAndKeyFromS3ObjectUrl(
-                    `http://s3-bucket/object/key`
-                ));
+                expectToThrow(() =>
+                    getBucketAndKeyFromS3ObjectUrl(
+                        `http://s3-bucket/object/key`
+                    )
+                );
             });
             it("Should throw for URL s3://[s3Bucket]/object/key/", function () {
                 expectToThrow(() =>

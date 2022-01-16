@@ -24,9 +24,8 @@ interface ResolverPackageInterface {
     cleanupAsync(): Promise<void>;
 }
 
-interface UpdateTargetInterface
-{
-    uploadCodeZipStreamAsync(zipStream: Readable): Promise<void>
+interface UpdateTargetInterface {
+    uploadCodeZipStreamAsync(zipStream: Readable): Promise<void>;
 }
 
 interface UpdaterInterface {
@@ -37,6 +36,6 @@ export {
     RepositoryTarballInterface,
     ResolverPackageInterface,
     TarballRepositoryInterface,
-    UpdateTargetInterface,
     UpdaterInterface,
+    UpdateTargetInterface,
 };

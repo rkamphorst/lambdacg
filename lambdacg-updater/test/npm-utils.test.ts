@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { createReadStream} from "fs";
+import { createReadStream } from "fs";
 import fs from "fs/promises";
 import path from "path";
 import { PassThrough } from "stream";
@@ -10,10 +10,10 @@ import {
     readNpmPackageInfoAsync,
     storeTemporaryNpmTarballAsync,
 } from "../src/npm-utils";
+import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
+import { expectFileToExistAsync } from "./lib/expect-file-to-exist";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
-import {createTemporaryDirAsync} from "./lib/create-temporary-dir";
-import {expectFileToExistAsync} from "./lib/expect-file-to-exist";
 
 const dataDir = path.join(__dirname, "data", "npm-utils.test");
 
@@ -22,14 +22,14 @@ describe("NpmUtils", function () {
     // therefore we adjust the timeouts
     this.slow("200ms");
 
-    describeObject({ npmInstallAsync }, function() {
-        let tmpdir:string|undefined = undefined;
-        before(async function() {
+    describeObject({ npmInstallAsync }, function () {
+        let tmpdir: string | undefined = undefined;
+        before(async function () {
             tmpdir = await createTemporaryDirAsync();
         });
 
-        after(async function() {
-            await fs.rm(tmpdir as string, {force:true, recursive:true});
+        after(async function () {
+            await fs.rm(tmpdir as string, { force: true, recursive: true });
         });
 
         it(`Should install valid package`, async function () {
@@ -39,10 +39,11 @@ describe("NpmUtils", function () {
 
         it(`Should throw error if file does not exist`, async function () {
             const packagePath = path.join(dataDir, "nonexistent.tgz");
-            await expectToThrowAsync(() => npmInstallAsync(tmpdir as string, [packagePath]));
+            await expectToThrowAsync(() =>
+                npmInstallAsync(tmpdir as string, [packagePath])
+            );
         });
-
-    })
+    });
 
     describeObject({ readNpmPackageInfoAsync }, function () {
         for (const validpackageTgz of [
@@ -132,14 +133,14 @@ describe("NpmUtils", function () {
                     version: "1.2.3",
                 });
 
-                await fs.rm(result.location, {force:true});
+                await fs.rm(result.location, { force: true });
             });
         }
 
         for (const invalidPackageTgz of [
             "invalidpackage-wrong-layout.tgz",
             "invalidpackage-no-packagejson.tgz",
-            "invalidpackage-invalid-packagejson.tgz"
+            "invalidpackage-invalid-packagejson.tgz",
         ]) {
             const packagePath = path.join(dataDir, invalidPackageTgz);
             it(`Should refuse to store ${invalidPackageTgz} and throw an exception`, async function () {
@@ -151,11 +152,16 @@ describe("NpmUtils", function () {
             });
         }
 
-        it("Should throw if target directory does not exist", async function() {
+        it("Should throw if target directory does not exist", async function () {
             const packagePath = path.join(dataDir, "validpackage.tgz");
             const readStream = createReadStream(packagePath);
 
-            await expectToThrowAsync(() => storeTemporaryNpmTarballAsync(readStream, path.join(dataDir, "nonexistent")));
+            await expectToThrowAsync(() =>
+                storeTemporaryNpmTarballAsync(
+                    readStream,
+                    path.join(dataDir, "nonexistent")
+                )
+            );
         });
     });
 });

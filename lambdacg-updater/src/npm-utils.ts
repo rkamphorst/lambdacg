@@ -45,7 +45,10 @@ function readNpmPackageInfoAsync(stream: Readable): Promise<NpmPackageInfo> {
 
         let isResolvedOrRejected = false;
 
-        const resolveOrRejectOnce = (error:unknown, resolveValue: NpmPackageInfo|undefined) => {
+        const resolveOrRejectOnce = (
+            error: unknown,
+            resolveValue: NpmPackageInfo | undefined
+        ) => {
             if (!isResolvedOrRejected) {
                 if (error) {
                     reject(error);
@@ -53,10 +56,12 @@ function readNpmPackageInfoAsync(stream: Readable): Promise<NpmPackageInfo> {
                     resolve(resolveValue as NpmPackageInfo);
                 }
             }
-        }
+        };
 
-        const resolveOnce = (resolveValue: NpmPackageInfo) => resolveOrRejectOnce(undefined, resolveValue);
-        const rejectOnce = (error: unknown) => resolveOrRejectOnce(error, undefined);
+        const resolveOnce = (resolveValue: NpmPackageInfo) =>
+            resolveOrRejectOnce(undefined, resolveValue);
+        const rejectOnce = (error: unknown) =>
+            resolveOrRejectOnce(error, undefined);
 
         extractTransform.on("entry", function (header, fileStream, next) {
             // header is the tar header

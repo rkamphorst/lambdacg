@@ -12,13 +12,14 @@ const getBucketAndPrefixOrKeyFromS3Url = (
         throw new Error(`This is not a s3 URL: ${s3Url}`);
     }
 
-    const groups = reResult.groups as { bucket: string, prefixOrKey: string|undefined };
+    const groups = reResult.groups as {
+        bucket: string;
+        prefixOrKey: string | undefined;
+    };
 
     const bucket = groups.bucket;
     const prefixOrKey =
-        groups.prefixOrKey?.length === 0
-            ? undefined
-            : groups.prefixOrKey;
+        groups.prefixOrKey?.length === 0 ? undefined : groups.prefixOrKey;
 
     return {
         Bucket: bucket,
