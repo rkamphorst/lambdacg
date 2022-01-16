@@ -98,7 +98,7 @@ describe("ResolverPackage", function () {
         });
 
         describeMember<ResolverPackage>(
-            "createLambdaCodeZipStreamAsync",
+            "createCodeZipStreamAsync",
             function () {
                 it("Should create a correct zip file if no modules are added", async function () {
                     const sut = new ResolverPackage(
@@ -108,7 +108,7 @@ describe("ResolverPackage", function () {
 
                     await isWriteStreamFinishedAsync(
                         (
-                            await sut.createLambdaCodeZipStreamAsync()
+                            await sut.createCodeZipStreamAsync()
                         ).pipe(
                             unzipper.Extract({
                                 path: codeUnpackPath(),
@@ -157,7 +157,7 @@ describe("ResolverPackage", function () {
 
                     await isWriteStreamFinishedAsync(
                         (
-                            await sut.createLambdaCodeZipStreamAsync()
+                            await sut.createCodeZipStreamAsync()
                         ).pipe(
                             unzipper.Extract({
                                 path: codeUnpackPath(),
@@ -209,7 +209,7 @@ describe("ResolverPackage", function () {
 
                     await isWriteStreamFinishedAsync(
                         (
-                            await sut.createLambdaCodeZipStreamAsync()
+                            await sut.createCodeZipStreamAsync()
                         ).pipe(
                             unzipper.Extract({
                                 path: codeUnpackPath(),
@@ -252,7 +252,7 @@ describe("ResolverPackage", function () {
 
                     await isWriteStreamFinishedAsync(
                         (
-                            await sut.createLambdaCodeZipStreamAsync()
+                            await sut.createCodeZipStreamAsync()
                         ).pipe(
                             unzipper.Extract({
                                 path: codeUnpackPath(),
@@ -282,7 +282,7 @@ describe("ResolverPackage", function () {
                     );
 
                     const zipStream =
-                        await sut.createLambdaCodeZipStreamAsync();
+                        await sut.createCodeZipStreamAsync();
                     const promise = isReadStreamFinishedAsync(zipStream);
                     zipStream.resume();
 
@@ -298,7 +298,7 @@ describe("ResolverPackage", function () {
                     );
 
                     const zipStream =
-                        await sut.createLambdaCodeZipStreamAsync();
+                        await sut.createCodeZipStreamAsync();
                     const promise = isReadStreamFinishedAsync(zipStream);
                     zipStream.resume();
 
@@ -338,7 +338,7 @@ describe("ResolverPackage", function () {
 
                 await isWriteStreamFinishedAsync(
                     (
-                        await sut.createLambdaCodeZipStreamAsync()
+                        await sut.createCodeZipStreamAsync()
                     ).pipe(
                         unzipper.Extract({
                             path: codeUnpackPath(),

@@ -69,7 +69,7 @@ class ResolverPackage implements ResolverPackageInterface {
         return await storeTemporaryNpmTarballAsync(tarballStream, tmpdir);
     }
 
-    async createLambdaCodeZipStreamAsync(): Promise<Readable> {
+    async createCodeZipStreamAsync(): Promise<Readable> {
         const result = new PassThrough();
 
         // we could have just kicked this off and returned

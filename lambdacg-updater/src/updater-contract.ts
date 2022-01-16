@@ -19,9 +19,14 @@ interface RepositoryTarballInterface {
 interface ResolverPackageInterface {
     addHandlerTarball(handlerTarball: RepositoryTarballInterface): void;
 
-    createLambdaCodeZipStreamAsync(): Promise<Readable>;
+    createCodeZipStreamAsync(): Promise<Readable>;
 
     cleanupAsync(): Promise<void>;
+}
+
+interface UpdateTargetInterface
+{
+    uploadCodeZipStreamAsync(zipStream: Readable): Promise<void>
 }
 
 interface UpdaterInterface {
@@ -32,5 +37,6 @@ export {
     RepositoryTarballInterface,
     ResolverPackageInterface,
     TarballRepositoryInterface,
+    UpdateTargetInterface,
     UpdaterInterface,
 };
