@@ -2,10 +2,12 @@ import { expect } from "chai";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { PassThrough } from "node:stream";
 
 import { unpackNpmPackageContentsInTarball } from "../src/unpack";
 import { getLogger } from "./lib/logger";
 import { describeObject } from "./lib/mocha-utils";
+import {expectToThrowAsync} from "./lib/expect-to-throw";
 
 const dataDir = path.join(__dirname, "data", "unpack.test");
 const logger = getLogger();
@@ -50,6 +52,13 @@ describe("Unpack", () => {
                 await fs.rm(unpackDir, { recursive: true, force: true });
                 logger.log(`Removed directory with contents: ${unpackDir}`);
             }
+        });
+        it("Should throw if unpacking does not succeed", async () => {
+            const readStream = new PassThrough();
+            readStream.write(Buffer.from("This is not a tarball", "utf-8"));
+            readStream.end();
+            await expectToThrowAsync(() => unpackNpmPackageContentsInTarball(readStream));
+
         });
     });
 });
