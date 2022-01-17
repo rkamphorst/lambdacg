@@ -7,7 +7,7 @@ import {
 } from "../src/s3-tarball-repository";
 import { expectToThrow, expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeClass, describeMember } from "./lib/mocha-utils";
-import { S3ClientMock } from "./lib/s3-mock-utils";
+import { S3ClientMock } from "./lib/s3-client-mock";
 
 const packageFileNames = [
     "tgz.file.tgz",
