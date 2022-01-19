@@ -1,11 +1,12 @@
 import { AWSError, Request, S3 } from "aws-sdk";
+import { ManagedUpload } from "aws-sdk/clients/s3";
 import { Readable } from "node:stream";
 import sinon, { SinonStubbedInstance } from "sinon";
 
 type VersionSpec =
     | string
     | {
-          Key: string;
+          Key: string | undefined;
           VersionId?: string | undefined;
           LastModified?: Date | undefined;
           IsLatest?: boolean | undefined;
@@ -15,19 +16,25 @@ type VersionSpec =
 type VersionMatch =
     | string
     | {
+          Bucket?: string;
           Key?: string;
-          VersionId?: string | undefined;
+          VersionId?: string;
       }
-    | ((v: { Key: string; VersionId?: string | undefined }) => boolean);
+    | ((v: { Bucket?: string; Key?: string; VersionId?: string }) => boolean);
 
 const isMatch = (
     vm: VersionMatch,
-    v: { Key: string; VersionId?: string | undefined }
+    v: {
+        Bucket?: string | undefined;
+        Key?: string | undefined;
+        VersionId?: string | undefined;
+    }
 ) => {
     if (typeof vm === "string") {
         return v.Key === vm;
     } else if (typeof vm === "object") {
         return (
+            (!("Bucket" in vm) || vm.Bucket === v.Bucket) &&
             (!("Key" in vm) || vm.Key === v.Key) &&
             (!("VersionId" in vm) || vm.VersionId === v.VersionId)
         );
@@ -37,15 +44,15 @@ const isMatch = (
 };
 
 const specToVersion = (item: {
-    Key: string;
-    VersionId?: string | undefined;
-    LastModified?: Date | undefined;
-    IsLatest?: boolean | undefined;
+    Key?: string;
+    VersionId?: string;
+    LastModified?: Date;
+    IsLatest?: boolean;
 }) => {
     return {
-        Key: item.Key,
+        Key: item.Key ?? "key",
         VersionId: item.VersionId ?? "null",
-        LastModified: item.LastModified ?? new Date("1990-01-01T13:30:15Z"),
+        LastModified: item.LastModified ?? new Date(),
         IsLatest: item.IsLatest ?? true,
     };
 };
@@ -204,6 +211,16 @@ class S3ClientMock {
                     return result;
                 },
             } as Request<S3.GetObjectOutput, AWSError>);
+    }
+
+    setupUpload(version: VersionMatch) {
+        return this.#stub.upload
+            .withArgs(
+                sinon.match((arg: S3.PutObjectRequest) => isMatch(version, arg))
+            )
+            .returns({
+                promise: () => Promise.resolve({}),
+            } as ManagedUpload);
     }
 }
 

@@ -5,9 +5,9 @@ import path from "node:path";
 import { PassThrough } from "node:stream";
 
 import { unpackNpmPackageContentsInTarball } from "../src/unpack";
+import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { getLogger } from "./lib/logger";
 import { describeObject } from "./lib/mocha-utils";
-import {expectToThrowAsync} from "./lib/expect-to-throw";
 
 const dataDir = path.join(__dirname, "data", "unpack.test");
 const logger = getLogger();
@@ -57,8 +57,9 @@ describe("Unpack", () => {
             const readStream = new PassThrough();
             readStream.write(Buffer.from("This is not a tarball", "utf-8"));
             readStream.end();
-            await expectToThrowAsync(() => unpackNpmPackageContentsInTarball(readStream));
-
+            await expectToThrowAsync(() =>
+                unpackNpmPackageContentsInTarball(readStream)
+            );
         });
     });
 });
