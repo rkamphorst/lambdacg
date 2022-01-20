@@ -5,9 +5,9 @@ import path from "node:path";
 import streamEqualAsync from "stream-equal";
 
 import { getAssetStream } from "../src/assets";
+import { streamToStringAsync } from "../src/stream-utils";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
-import { streamToStringAsync } from "./lib/stream-utils";
 
 describe("Assets", function () {
     describeObject({ getAssetStream }, function () {

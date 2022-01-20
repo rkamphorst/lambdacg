@@ -1,6 +1,22 @@
 import { Readable, Writable } from "node:stream";
 
 const isStreamFinishedAsync = (stream: Readable | Writable) => {
+    if ("read" in stream && typeof stream.read === "function") {
+        // this is a Readable
+        const readable = stream as { readableEnded: boolean };
+        if (readable.readableEnded) {
+            return Promise.resolve(true);
+        }
+    }
+
+    if ("write" in stream && typeof stream.write === "function") {
+        // this is a Writable
+        const writable = stream as { writableEnded: boolean };
+        if (writable.writableEnded) {
+            return Promise.resolve(true);
+        }
+    }
+
     return new Promise<void>((resolve, reject) => {
         let isRejectedOrResolved = false;
 
@@ -22,20 +38,6 @@ const isStreamFinishedAsync = (stream: Readable | Writable) => {
     });
 };
 
-const isWriteStreamFinishedAsync = (writeStream: Writable) => {
-    if (writeStream.writableFinished) {
-        return Promise.resolve(true);
-    }
-    return isStreamFinishedAsync(writeStream);
-};
-
-const isReadStreamFinishedAsync = (readStream: Readable) => {
-    if (readStream.readableEnded) {
-        return Promise.resolve(true);
-    }
-    return isStreamFinishedAsync(readStream);
-};
-
 function streamToStringAsync(stream: Readable) {
     const chunks: Buffer[] = [];
     return new Promise((resolve, reject) => {
@@ -45,8 +47,4 @@ function streamToStringAsync(stream: Readable) {
     });
 }
 
-export {
-    isReadStreamFinishedAsync,
-    isWriteStreamFinishedAsync,
-    streamToStringAsync,
-};
+export { isStreamFinishedAsync, streamToStringAsync };

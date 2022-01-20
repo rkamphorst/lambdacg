@@ -9,6 +9,7 @@ import unzipper from "unzipper";
 
 import { npmInstallAsync } from "../src/npm-utils";
 import { ResolverPackage } from "../src/resolver-package";
+import { isStreamFinishedAsync } from "../src/stream-utils";
 import { RepositoryTarballInterface } from "../src/updater-contract";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import {
@@ -18,10 +19,6 @@ import {
 import { expectToThrow, expectToThrowAsync } from "./lib/expect-to-throw";
 import { getLogger } from "./lib/logger";
 import { describeClass, describeMember } from "./lib/mocha-utils";
-import {
-    isReadStreamFinishedAsync,
-    isWriteStreamFinishedAsync,
-} from "./lib/stream-utils";
 
 const logger = getLogger();
 
@@ -104,7 +101,7 @@ describe("ResolverPackage", function () {
                     npmInstallAsync
                 );
 
-                await isWriteStreamFinishedAsync(
+                await isStreamFinishedAsync(
                     (
                         await sut.createCodeZipAsync()
                     ).pipe(
@@ -150,7 +147,7 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                await isWriteStreamFinishedAsync(
+                await isStreamFinishedAsync(
                     (
                         await sut.createCodeZipAsync()
                     ).pipe(
@@ -199,7 +196,7 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                await isWriteStreamFinishedAsync(
+                await isStreamFinishedAsync(
                     (
                         await sut.createCodeZipAsync()
                     ).pipe(
@@ -242,7 +239,7 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                await isWriteStreamFinishedAsync(
+                await isStreamFinishedAsync(
                     (
                         await sut.createCodeZipAsync()
                     ).pipe(
@@ -274,7 +271,7 @@ describe("ResolverPackage", function () {
                 );
 
                 const zipStream = await sut.createCodeZipAsync();
-                const promise = isReadStreamFinishedAsync(zipStream);
+                const promise = isStreamFinishedAsync(zipStream);
                 zipStream.resume();
 
                 await expectToThrowAsync(() => promise);
@@ -289,7 +286,7 @@ describe("ResolverPackage", function () {
                 );
 
                 const zipStream = await sut.createCodeZipAsync();
-                const promise = isReadStreamFinishedAsync(zipStream);
+                const promise = isStreamFinishedAsync(zipStream);
                 zipStream.resume();
 
                 await expectToThrowAsync(() => promise);
@@ -325,7 +322,7 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                await isWriteStreamFinishedAsync(
+                await isStreamFinishedAsync(
                     (
                         await sut.createCodeZipAsync()
                     ).pipe(
