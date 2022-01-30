@@ -3,7 +3,7 @@ import { rmSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { PassThrough, Writable } from "node:stream";
+import { finished, PassThrough, Writable } from "node:stream";
 import { Readable } from "stream";
 
 import {
@@ -124,14 +124,14 @@ class ResolverPackage implements ResolverPackageInterface {
             // when zip is completed, remove package dir.
             // do this synchronously for now because nobody is waiting anyway.
             // don't know what happens if we do it async and don't await it...
-            archive.on("finish", () => {
+            finished(archive, () => {
                 rmSync(packageDirectory, { force: true, recursive: true });
             });
 
             // add package directory
             archive.directory(packageDirectory, false);
 
-            await archive.finalize();
+            archive.finalize();
         } catch (err) {
             writeStream.destroy(
                 err instanceof Error ? err : new Error(`${err}`)

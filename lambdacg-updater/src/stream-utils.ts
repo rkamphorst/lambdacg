@@ -1,41 +1,8 @@
 import { Readable, Writable } from "node:stream";
+import { finished as finishedAsync } from "node:stream/promises";
 
-const isStreamFinishedAsync = (stream: Readable | Writable) => {
-    if ("read" in stream && typeof stream.read === "function") {
-        // this is a Readable
-        const readable = stream as { readableEnded: boolean };
-        if (readable.readableEnded) {
-            return Promise.resolve(true);
-        }
-    }
-
-    if ("write" in stream && typeof stream.write === "function") {
-        // this is a Writable
-        const writable = stream as { writableEnded: boolean };
-        if (writable.writableEnded) {
-            return Promise.resolve(true);
-        }
-    }
-
-    return new Promise<void>((resolve, reject) => {
-        let isRejectedOrResolved = false;
-
-        const rejectOrResolve = (err: unknown) => {
-            if (!isRejectedOrResolved) {
-                isRejectedOrResolved = true;
-                if (err !== undefined) {
-                    reject(err);
-                } else {
-                    resolve(err);
-                }
-            }
-        };
-
-        stream.on("error", (err: unknown) =>
-            rejectOrResolve(err ?? new Error())
-        );
-        stream.on("close", (err: unknown) => rejectOrResolve(err));
-    });
+const isStreamFinishedAsync = async (stream: Readable | Writable) => {
+    return finishedAsync(stream);
 };
 
 function streamToStringAsync(stream: Readable) {

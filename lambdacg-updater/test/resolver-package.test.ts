@@ -41,6 +41,27 @@ class StubHandlerTarball implements RepositoryTarballInterface {
     }
 }
 
+const unzipZipStreamAsync = async (stream: Readable, unpackPath: string) => {
+    const unzipStream = unzipper.Extract({
+        path: unpackPath,
+    });
+    stream.pipe(unzipStream);
+    try {
+        await isStreamFinishedAsync(unzipStream);
+    } catch (e) {
+        if (
+            e &&
+            typeof e === "object" &&
+            "code" in e &&
+            (e as { code: unknown }).code === "ERR_STREAM_PREMATURE_CLOSE"
+        ) {
+            /* this is a nasty error that is thrown by the unzip stream, nothing to worry about... */
+            return;
+        }
+        throw e;
+    }
+};
+
 describe("ResolverPackage", function () {
     const getMyPackageStream = () =>
         createReadStream(path.join(dataDir, "my-package.tgz"));
@@ -101,15 +122,8 @@ describe("ResolverPackage", function () {
                     npmInstallAsync
                 );
 
-                await isStreamFinishedAsync(
-                    (
-                        await sut.createCodeZipAsync()
-                    ).pipe(
-                        unzipper.Extract({
-                            path: codeUnpackPath(),
-                        })
-                    )
-                );
+                const zipStream = await sut.createCodeZipAsync();
+                await unzipZipStreamAsync(zipStream, codeUnpackPath());
 
                 await expectFileToExistAsync("index.js", codeUnpackPath());
                 await expectFileToExistAsync("package.json", codeUnpackPath());
@@ -147,15 +161,8 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                await isStreamFinishedAsync(
-                    (
-                        await sut.createCodeZipAsync()
-                    ).pipe(
-                        unzipper.Extract({
-                            path: codeUnpackPath(),
-                        })
-                    )
-                );
+                const zipStream = await sut.createCodeZipAsync();
+                await unzipZipStreamAsync(zipStream, codeUnpackPath());
 
                 await expectFileToExistAsync("index.js", codeUnpackPath());
                 await expectFileToExistAsync("package.json", codeUnpackPath());
@@ -196,15 +203,8 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                await isStreamFinishedAsync(
-                    (
-                        await sut.createCodeZipAsync()
-                    ).pipe(
-                        unzipper.Extract({
-                            path: codeUnpackPath(),
-                        })
-                    )
-                );
+                const zipStream = await sut.createCodeZipAsync();
+                await unzipZipStreamAsync(zipStream, codeUnpackPath());
 
                 const imported = (await import(
                     path.join(codeUnpackPath(), "index.js")
@@ -239,15 +239,8 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                await isStreamFinishedAsync(
-                    (
-                        await sut.createCodeZipAsync()
-                    ).pipe(
-                        unzipper.Extract({
-                            path: codeUnpackPath(),
-                        })
-                    )
-                );
+                const zipStream = await sut.createCodeZipAsync();
+                await unzipZipStreamAsync(zipStream, codeUnpackPath());
 
                 const imported = (await import(
                     path.join(codeUnpackPath(), "index.js")
@@ -322,15 +315,8 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                await isStreamFinishedAsync(
-                    (
-                        await sut.createCodeZipAsync()
-                    ).pipe(
-                        unzipper.Extract({
-                            path: codeUnpackPath(),
-                        })
-                    )
-                );
+                const zipStream = await sut.createCodeZipAsync();
+                await unzipZipStreamAsync(zipStream, codeUnpackPath());
 
                 await sut.cleanupAsync();
 

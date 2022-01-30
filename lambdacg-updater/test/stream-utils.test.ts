@@ -1,73 +1,132 @@
-import { ReadStream } from "node:fs";
-import {Readable,ReadableOptions,Writable, WritableOptions} from "node:stream";
+import { expect } from "chai";
+import { Readable, Writable } from "node:stream";
+
 import {
     isStreamFinishedAsync,
     streamToStringAsync,
 } from "../src/stream-utils";
+import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
 
-class MockReadStream extends Readable {
-
-    constructor(options:ReadableOptions) {
-        super(options);
-    }
-
-    override _read(): void {
-        
-    }
-
-    override _destroy(error: Error, callback: (error?: Error) => void): void {
-        
-    }
-
-}
-
-class MockWriteStream extends Writable {
-    constructor(options:WritableOptions) {
-        super(options);
-    }
-
-    override _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error) => void): void {
-        
-    }
-
-    override _destroy(error: Error, callback: (error?: Error) => void): void {
-        
-    }
-}
-
-
 describe("Stream Utils", function () {
-    describeObject({ isStreamFinishedAsync }, function () {
+    describeObject({ isStreamFinishedAsync }, async function () {
         it("Should return when a read stream finishes asynchronously", async function () {
-            this.skip();
+            const stream = new Readable({
+                read: () => {
+                    /*skip */
+                },
+            });
+            const promise = isStreamFinishedAsync(stream);
+
+            stream.on("data", () => {
+                /* skip */
+            });
+            setTimeout(() => {
+                stream.push(null);
+            }, 0);
+
+            await promise;
         });
 
         it("Should return when a read stream is already finished", async function () {
-            this.skip();
+            // Arrange
+            const stream = new Readable({
+                read: () => {
+                    /*skip */
+                },
+            });
+            stream.on("data", () => {
+                /* skip */
+            });
+            stream.push(null);
+            await isStreamFinishedAsync(stream);
+
+            // Act
+            await isStreamFinishedAsync(stream);
+
+            // if/when we arrive here, the second call returned
+            // when read stream already finished
         });
 
         it("Should return when a write stream finishes asynchronously", async function () {
-            this.skip();
+            const stream = new Writable({
+                write: (c, e, cb) => {
+                    cb();
+                },
+            });
+            const promise = isStreamFinishedAsync(stream);
+
+            setTimeout(() => {
+                stream.write("asdf", "utf-8");
+                stream.end();
+            }, 0);
+
+            await promise;
         });
 
         it("Should return when a write stream is already finished", async function () {
-            this.skip();
+            // Arrange
+            const stream = new Writable({
+                write: (c, e, cb) => {
+                    cb();
+                },
+            });
+            stream.end();
+            await isStreamFinishedAsync(stream);
+
+            // Act
+            await isStreamFinishedAsync(stream);
+
+            // if/when we arrive here, the second call returned
+            // when read stream already finished
         });
 
         it("Should throw when a read receives an error", async function () {
-            this.skip();
+            const expectedError = new Error();
+            const stream = new Readable({
+                read: () => {
+                    throw expectedError;
+                },
+            });
+            const promise = isStreamFinishedAsync(stream);
+            let emittedError: undefined | Error = undefined;
+
+            stream.on("data", () => {
+                /* skip */
+            });
+            stream.on("error", (e) => (emittedError = e));
+            setTimeout(() => {
+                stream.push(null);
+            }, 0);
+
+            await expectToThrowAsync(
+                () => promise,
+                (e) => e === expectedError
+            );
+            expect(emittedError).to.be.equal(expectedError);
         });
 
-        it("Should throw when a read has received an error", async function () {
-            this.skip();
+        it("Should not throw second time awaited when received an error", async function () {
+            const expectedError = new Error();
+            const stream = new Readable({
+                read: () => {
+                    /*skip */
+                },
+            });
+            stream.destroy(expectedError);
+
+            await expectToThrowAsync(
+                () => isStreamFinishedAsync(stream),
+                (e) => e === expectedError
+            );
+
+            await expectToThrowAsync(
+                () => isStreamFinishedAsync(stream),
+                (e) => e === expectedError
+            );
         });
 
         it("Should throw when a write receives an error", async function () {
-            this.skip();
-        });
-
-        it("Should throw when a write has received an error", async function () {
             this.skip();
         });
     });

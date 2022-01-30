@@ -21,6 +21,7 @@ describe("NpmUtils", function () {
     // these tests are relatively slow (because of reading from fs)
     // therefore we adjust the timeouts
     this.slow("200ms");
+    this.timeout("60s");
 
     describeObject({ npmInstallAsync }, function () {
         let tmpdir: string | undefined = undefined;
