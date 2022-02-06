@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { finished as isStreamFinishedAsync } from "node:stream/promises";
+import { finished as streamFinishedAsync } from "node:stream/promises";
 import unzipper from "unzipper";
 
 import { npmInstallAsync } from "../src/npm-utils";
@@ -47,7 +47,7 @@ const unzipZipStreamAsync = async (stream: Readable, unpackPath: string) => {
     });
     stream.pipe(unzipStream);
     try {
-        await isStreamFinishedAsync(unzipStream);
+        await streamFinishedAsync(unzipStream);
     } catch (e) {
         if (
             e &&
@@ -264,7 +264,7 @@ describe("ResolverPackage", function () {
                 );
 
                 const zipStream = await sut.createCodeZipAsync();
-                const promise = isStreamFinishedAsync(zipStream);
+                const promise = streamFinishedAsync(zipStream);
                 zipStream.resume();
 
                 await expectToThrowAsync(() => promise);
@@ -279,7 +279,7 @@ describe("ResolverPackage", function () {
                 );
 
                 const zipStream = await sut.createCodeZipAsync();
-                const promise = isStreamFinishedAsync(zipStream);
+                const promise = streamFinishedAsync(zipStream);
                 zipStream.resume();
 
                 await expectToThrowAsync(() => promise);
