@@ -5,11 +5,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { finished as isStreamFinishedAsync } from "node:stream/promises";
 import unzipper from "unzipper";
 
 import { npmInstallAsync } from "../src/npm-utils";
 import { ResolverPackage } from "../src/resolver-package";
-import { isStreamFinishedAsync } from "../src/stream-utils";
 import { RepositoryTarballInterface } from "../src/updater-contract";
 import { createTemporaryDirAsync } from "./lib/create-temporary-dir";
 import {

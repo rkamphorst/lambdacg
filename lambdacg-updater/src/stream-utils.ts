@@ -1,9 +1,4 @@
-import { Readable, Writable } from "node:stream";
-import { finished as finishedAsync } from "node:stream/promises";
-
-const isStreamFinishedAsync = async (stream: Readable | Writable) => {
-    return finishedAsync(stream);
-};
+import { Readable } from "node:stream";
 
 function streamToStringAsync(stream: Readable) {
     const chunks: Buffer[] = [];
@@ -14,4 +9,4 @@ function streamToStringAsync(stream: Readable) {
     });
 }
 
-export { isStreamFinishedAsync, streamToStringAsync };
+export { streamToStringAsync };
