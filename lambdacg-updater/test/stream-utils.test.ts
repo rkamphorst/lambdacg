@@ -87,7 +87,6 @@ describe("Stream Utils", function () {
             stream.destroy(new Error());
 
             await expectToThrowAsync(() => streamFinishedAsync(stream));
-
         });
 
         it("Should throw when a write stream receives an error", async function () {
@@ -129,9 +128,7 @@ describe("Stream Utils", function () {
             });
             stream.destroy(expectedError);
 
-            await expectToThrowAsync(
-                () => streamToStringAsync(stream)
-            );
+            await expectToThrowAsync(() => streamToStringAsync(stream));
         });
 
         it("Should throw when the stream has received an error", async function () {
