@@ -86,13 +86,9 @@ describe("Stream Utils", function () {
             });
             stream.destroy(new Error());
 
-            await expectToThrowAsync(
-                () => streamFinishedAsync(stream)
-            );
+            await expectToThrowAsync(() => streamFinishedAsync(stream));
 
-            await expectToThrowAsync(
-                () => streamFinishedAsync(stream)
-            );
+            await expectToThrowAsync(() => streamFinishedAsync(stream));
         });
 
         it("Should throw when a write receives an error", async function () {
@@ -103,13 +99,9 @@ describe("Stream Utils", function () {
             });
             stream.destroy(new Error());
 
-            await expectToThrowAsync(
-                () => streamFinishedAsync(stream)
-            );
+            await expectToThrowAsync(() => streamFinishedAsync(stream));
 
-            await expectToThrowAsync(
-                () => streamFinishedAsync(stream)
-            );
+            await expectToThrowAsync(() => streamFinishedAsync(stream));
         });
     });
 
