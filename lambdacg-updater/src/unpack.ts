@@ -28,9 +28,10 @@ const unpackNpmPackageContentsInTarball = async (
                     const relativePath = pkgDirMatch[2];
                     const absPath = path.join(tmpdir, relativePath);
                     const absDirPath = path.dirname(absPath);
-                    fs.mkdir(absDirPath, { recursive: true });
-                    const writeStream = createWriteStream(absPath);
-                    stream.pipe(writeStream);
+                    fs.mkdir(absDirPath, { recursive: true }).then(() => {
+                        const writeStream = createWriteStream(absPath);
+                        stream.pipe(writeStream);
+                    });
                 } else {
                     stream.resume(); // just auto drain the stream
                 }
