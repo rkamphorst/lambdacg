@@ -75,6 +75,6 @@ There are 3 services, maintained by 3 teams: teams/services Blue, Purple and Red
 Status of this PoC is as follows:
 
 * **lambdacg-contract**: done.
-* **lambdacg-resolver**: Done. Code complete and unit tested
-* **lambdacg-updater**: In progress
+* **lambdacg-resolver**: Code complete and unit tested
+* **lambdacg-updater**: Code complete and unit tested
 * **infrastructure**: Cloudformation templates to deploy the whole thing, not started yet.
