@@ -2,10 +2,10 @@ import { exec } from "child_process";
 import { createWriteStream } from "fs";
 import gunzip from "gunzip-maybe";
 import { PassThrough, Readable } from "node:stream";
-import { streamFinishedAsync } from "../src/stream-utils";
 import tarStream from "tar-stream";
 import { tmpName } from "tmp";
 
+import { streamFinishedAsync } from "../src/stream-utils";
 import fsu from "./fs-utils";
 
 type NpmPackageInfo = {

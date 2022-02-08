@@ -2,7 +2,7 @@ import { finished, Readable, Writable } from "node:stream";
 
 function streamFinishedAsync(stream: Readable | Writable) {
     return new Promise<void>((resolve, reject) => {
-        finished(stream, err => {
+        finished(stream, (err) => {
             if (err) {
                 reject(err);
             } else {

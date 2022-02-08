@@ -1,10 +1,7 @@
 import { expect } from "chai";
 import { Readable, Writable } from "node:stream";
 
-import {
-    streamFinishedAsync,
-    streamToStringAsync,
-} from "../src/stream-utils";
+import { streamFinishedAsync, streamToStringAsync } from "../src/stream-utils";
 import { expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
 
