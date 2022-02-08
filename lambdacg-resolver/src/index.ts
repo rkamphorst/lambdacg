@@ -1,21 +1,34 @@
-import _ from 'lodash';
-import { Gateway, GatewayRequest, GatewayResponse } from './gateway';
-import { executeAsync } from './executor';
-import { compose } from './composer';
-import { HandlerFactory } from 'lambdacg-contract';
-import { AppSyncResolverEvent } from 'aws-lambda';
+import { AppSyncResolverEvent } from "aws-lambda";
 
-const handlerFactories : HandlerFactory[] = require('./handlerFactories.json').map(require);
-const gateway = new Gateway(handlerFactories, executeAsync, compose);
+import { compose } from "./composer";
+import { executeAsync } from "./executor";
+import { Gateway } from "./gateway";
+import { GatewayRequest, GatewayResponse } from "./gateway-contract";
+import {
+    getModuleNamesFromJsonFileAsync,
+    provideHandlerFactoriesAsync,
+    setHandlerFactoryListSource,
+} from "./handler-factory-provider";
+
+setHandlerFactoryListSource(() =>
+    getModuleNamesFromJsonFileAsync("./handlerFactories.json")
+);
+
+const gateway = new Gateway(
+    provideHandlerFactoriesAsync,
+    executeAsync,
+    compose
+);
 
 /**
  * The following is a naïve implementation of a handler for appsync resolver events,
  * only for illustrational purposes.
- * Need som hands-on testing to find out if this will work. 
+ * Need som hands-on testing to find out if this will work.
  */
 
-function handleEventAsync (event : AppSyncResolverEvent<GatewayRequest,Record<string,any>>) : Promise<GatewayResponse>
-{
+function handleEventAsync(
+    event: AppSyncResolverEvent<GatewayRequest, Record<string, unknown>>
+): Promise<GatewayResponse> {
     return gateway.handleRequestAsync(event.arguments);
 }
 
