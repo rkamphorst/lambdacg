@@ -78,7 +78,7 @@ describe("Stream Utils", function () {
             // when read stream already finished
         });
 
-        it("Should throw second time awaited when received an error", async function () {
+        it("Should throw when a read stream receives an error", async function () {
             const stream = new Readable({
                 read: () => {
                     /*skip */
@@ -88,18 +88,15 @@ describe("Stream Utils", function () {
 
             await expectToThrowAsync(() => streamFinishedAsync(stream));
 
-            await expectToThrowAsync(() => streamFinishedAsync(stream));
         });
 
-        it("Should throw when a write receives an error", async function () {
+        it("Should throw when a write stream receives an error", async function () {
             const stream = new Writable({
                 write: () => {
                     /*skip */
                 },
             });
             stream.destroy(new Error());
-
-            await expectToThrowAsync(() => streamFinishedAsync(stream));
 
             await expectToThrowAsync(() => streamFinishedAsync(stream));
         });
@@ -127,13 +124,13 @@ describe("Stream Utils", function () {
             const expectedError = new Error();
             const stream = new Readable({
                 read: () => {
-                    throw expectedError;
+                    /* skip */
                 },
             });
+            stream.destroy(expectedError);
 
             await expectToThrowAsync(
-                () => streamToStringAsync(stream),
-                (e) => e === expectedError
+                () => streamToStringAsync(stream)
             );
         });
 
