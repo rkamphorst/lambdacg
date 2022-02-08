@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { finished as streamFinishedAsync } from "node:stream/promises";
+import { streamFinishedAsync } from "../src/stream-utils";
 import unzipper from "unzipper";
 
 import { npmInstallAsync } from "../src/npm-utils";

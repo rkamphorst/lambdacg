@@ -2,7 +2,7 @@ import { exec } from "child_process";
 import { createWriteStream } from "fs";
 import gunzip from "gunzip-maybe";
 import { PassThrough, Readable } from "node:stream";
-import { finished as streamFinishedAsync } from "node:stream/promises";
+import { streamFinishedAsync } from "../src/stream-utils";
 import tarStream from "tar-stream";
 import { tmpName } from "tmp";
 
