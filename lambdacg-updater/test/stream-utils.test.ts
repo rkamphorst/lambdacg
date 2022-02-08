@@ -31,8 +31,6 @@ describe("Stream Utils", function () {
                     throw expectedError;
                 },
             });
-
-            await expectToThrowAsync(() => streamToStringAsync(stream));
         });
 
         it("Should throw when the stream has received an error", async function () {
