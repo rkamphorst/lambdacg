@@ -43,9 +43,17 @@ class StubResolverPackage implements ResolverPackageInterface {
     }
 
     createCodeZipAsync() {
-        const result = new PassThrough();
-        result.end();
-        return Promise.resolve(result);
+        const stream = new PassThrough();
+        stream.end();
+        return Promise.resolve({
+            packageInfo: {
+                name: "resolver-package",
+                version: "1.0.0",
+                main: "index.js",
+            },
+            handlerFactories: [],
+            stream,
+        });
     }
     cleanupAsync() {
         return Promise.resolve();

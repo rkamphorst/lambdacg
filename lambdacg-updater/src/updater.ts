@@ -34,9 +34,9 @@ class Updater implements UpdaterInterface {
         repo.tarballs.forEach((t) => pkg.addHandlerTarball(t));
 
         try {
-            const code = await pkg.createCodeZipAsync();
+            const codeZip = await pkg.createCodeZipAsync();
 
-            await target.updateCodeAsync(code);
+            await target.updateCodeAsync(codeZip);
         } finally {
             await pkg.cleanupAsync();
         }

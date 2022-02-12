@@ -7,7 +7,7 @@ import { ResolverPackage } from "./resolver-package";
 import { S3TarballRepository } from "./s3-tarball-repository";
 import { Updater } from "./updater";
 
-const resolverPackageCodeAsset = "lambdacg-resolver.tgz";
+const resolverPackageCodeAsset = "resolver-package.tgz";
 
 const targetLambdaName = process.env.TARGET_LAMBDA;
 if (!targetLambdaName) {
