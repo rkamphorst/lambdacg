@@ -1,6 +1,7 @@
 import { AWSError, Lambda, S3, STS } from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
 import { Context } from "mocha";
+import { Readable } from "node:stream";
 import { v4 as uuid } from "uuid";
 
 class AwsTestSession {
@@ -112,7 +113,7 @@ class AwsTestSession {
     async uploadS3ObjectAsync(
         s3Bucket: string,
         key: string,
-        content: string
+        content: string | Readable
     ): Promise<void> {
         await this.#s3Client
             .putObject({
@@ -132,7 +133,11 @@ class AwsTestSession {
             .promise();
     }
 
-    async createLambdaAsync(zipFileContents: Buffer) {
+    emptyS3BucketAsync(s3Bucket: string) {
+        return this.#deleteS3BucketObjectVersionsAsync(s3Bucket);
+    }
+
+    async createLambdaAsync(zipFileContents: Buffer, handler: string) {
         const functionName = this.#generateName();
 
         await this.#lambdaClient
@@ -142,7 +147,7 @@ class AwsTestSession {
                     this.#awsAccount
                 }:role/LambdaCgLambdaExecutionRole`,
                 Runtime: "nodejs14.x",
-                Handler: "index.handler",
+                Handler: handler,
                 Code: {
                     ZipFile: zipFileContents,
                 },
@@ -150,45 +155,131 @@ class AwsTestSession {
             .promise();
         this.#tempLambdas.push(functionName);
         this.#inform(`Created lambda ${functionName}`);
+
         return functionName;
     }
 
-    async createLambdaAndAwaitReadinessAsync(zipFileContents: Buffer) {
-        const functionName = await this.createLambdaAsync(zipFileContents);
+    async updateLambdaCodeAsync(
+        functionName: string,
+        zipFileContents: Buffer,
+        handler: string
+    ) {
+        let config = await this.awaitLambdaReadiness(functionName);
+        const revisionId = config?.RevisionId;
 
-        await this.awaitLambdaReadiness(functionName);
+        if (handler !== config?.Handler) {
+            await this.#lambdaClient
+                .updateFunctionConfiguration({
+                    FunctionName: functionName,
+                    Handler: handler,
+                    RevisionId: revisionId,
+                })
+                .promise();
 
-        const response = await this.#lambdaClient
-            .invoke({
+            this.#inform(
+                `Updated handler to "${handler}" for lambda ${functionName}`
+            );
+
+            config = await this.awaitLambdaReadiness(functionName);
+        }
+
+        await this.#lambdaClient
+            .updateFunctionCode({
                 FunctionName: functionName,
-                Payload: "{}",
+                ZipFile: zipFileContents,
+                RevisionId: revisionId,
             })
             .promise();
-        this.#inform(
-            `Invoked lambda ${functionName} -- response: ${response.Payload}`
+
+        this.#inform(`Updated function code for lambda ${functionName}`);
+    }
+
+    async updateLambdaCodeAndAwaitReadinessAsync(
+        functionName: string,
+        zipFileContents: Buffer,
+        handler: string
+    ) {
+        await this.updateLambdaCodeAsync(
+            functionName,
+            zipFileContents,
+            handler
         );
+        await this.awaitLambdaReadiness(functionName);
+    }
+
+    async createLambdaAndAwaitReadinessAsync(
+        zipFileContents: Buffer,
+        handler: string
+    ) {
+        const functionName = await this.createLambdaAsync(
+            zipFileContents,
+            handler
+        );
+
+        await this.awaitLambdaReadiness(functionName);
 
         return functionName;
     }
 
     async awaitLambdaReadiness(functionName: string) {
-        let lastUpdateStatus: string | undefined = "__initial__";
+        const maxIterations = 300;
+        let lastUpdateStatus = "__initial__";
+        let state = "__initial__";
+        let configuration: Lambda.FunctionConfiguration | undefined = undefined;
 
-        while ("Successful" !== lastUpdateStatus) {
+        let iterations = 0;
+
+        while ("Successful" !== lastUpdateStatus || "Active" !== state) {
+            iterations++;
+            if (iterations > maxIterations) {
+                throw Error(
+                    `Awaited lambda readiness for more than ${maxIterations} iterations`
+                );
+            }
+
             if (lastUpdateStatus !== "__initial__") {
                 this.#inform(`Awaiting readiness of lambda ${functionName}`);
                 await new Promise<void>((resolve) =>
-                    setTimeout(() => resolve(), 3000)
+                    setTimeout(() => resolve(), 2000)
                 );
             }
-            lastUpdateStatus = (
+
+            configuration = (
                 await this.#lambdaClient
                     .getFunction({
                         FunctionName: functionName,
                     })
                     .promise()
-            ).Configuration?.LastUpdateStatus;
+            ).Configuration;
+
+            lastUpdateStatus = configuration?.LastUpdateStatus ?? "__unknown__";
+            state = configuration?.State ?? "__unknown__";
         }
+        return configuration;
+    }
+
+    async invokeJsonLambdaAsync(functionName: string, payload: unknown) {
+        const payloadStr = JSON.stringify(payload);
+        const resultStr = await this.invokeLambdaAsync(
+            functionName,
+            payloadStr
+        );
+
+        if (resultStr) {
+            return JSON.parse(resultStr);
+        }
+        throw Error("Lambda response is undefined");
+    }
+
+    async invokeLambdaAsync(functionName: string, payload: string) {
+        const response = await this.#lambdaClient
+            .invoke({
+                FunctionName: functionName,
+                Payload: payload,
+            })
+            .promise();
+
+        return response.Payload?.toString();
     }
 
     async cleanupAsync() {
@@ -236,7 +327,7 @@ class AwsTestSession {
         await Promise.all(
             toDelete.map(async (d) => {
                 const deleteObjectsSuccess =
-                    await this.#deleteS3BucketObjectsAsync(d);
+                    await this.#deleteS3BucketObjectVersionsAsync(d);
 
                 if (!deleteObjectsSuccess) {
                     this.#inform(
@@ -255,7 +346,10 @@ class AwsTestSession {
         return deleteBucketSuccess;
     }
 
-    async #deleteS3BucketObjectsAsync(s3Bucket: string) {
+    async #deleteS3BucketObjectVersionsAsync(
+        s3Bucket: string,
+        prefix?: string
+    ) {
         let continuation: string | undefined;
         let counter = 0;
         let deleteSuccessful = true;
@@ -274,6 +368,7 @@ class AwsTestSession {
             > = await this.#s3Client
                 .listObjectVersions({
                     Bucket: s3Bucket,
+                    Prefix: prefix,
                     ...continuationToken,
                 })
                 .promise();
