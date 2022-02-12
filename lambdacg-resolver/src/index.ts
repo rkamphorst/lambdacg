@@ -3,13 +3,13 @@ import { executeAsync } from "./executor";
 import { Gateway } from "./gateway";
 import { GatewayRequest, GatewayResponse } from "./gateway-contract";
 import {
-    getModuleNamesFromJsonFileAsync,
+    getModuleNamesFromEnvironmentVariable,
     provideHandlerFactoriesAsync,
     setHandlerFactoryListSource,
 } from "./handler-factory-provider";
 
 setHandlerFactoryListSource(() =>
-    getModuleNamesFromJsonFileAsync("./handlerFactories.json")
+    Promise.resolve(getModuleNamesFromEnvironmentVariable("HANDLER_FACTORIES"))
 );
 
 const gateway = new Gateway(

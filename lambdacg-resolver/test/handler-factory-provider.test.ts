@@ -3,11 +3,12 @@ import mockFs from "mock-fs";
 import path from "node:path";
 
 import {
+    getModuleNamesFromEnvironmentVariable,
     getModuleNamesFromJsonFileAsync,
     provideHandlerFactoriesAsync,
     setHandlerFactoryListSource,
 } from "../src/handler-factory-provider";
-import { expectToThrowAsync } from "./lib/expect-to-throw";
+import { expectToThrow, expectToThrowAsync } from "./lib/expect-to-throw";
 import { describeObject } from "./lib/mocha-utils";
 
 const dataDir = path.join(__dirname, "data", "handler-factory-provider.test");
@@ -76,6 +77,59 @@ describe("Handler Factory Provider", function () {
             await expectToThrowAsync(() =>
                 getModuleNamesFromJsonFileAsync("notJson.csv")
             );
+        });
+    });
+
+    describeObject({ getModuleNamesFromEnvironmentVariable }, function () {
+        it("Should throw when environment variable not set", function () {
+            delete process.env.HANDLER_FACTORIES;
+            expectToThrow(() =>
+                getModuleNamesFromEnvironmentVariable("HANDLER_FACTORIES")
+            );
+        });
+
+        it("Should return empty array when environment variable is empty", function () {
+            process.env.HANDLER_FACTORIES = "";
+
+            const result =
+                getModuleNamesFromEnvironmentVariable("HANDLER_FACTORIES");
+
+            expect(result).to.have.deep.members([]);
+        });
+
+        it("Should return array with single module if single module in environment var", function () {
+            process.env.HANDLER_FACTORIES = "module-1";
+
+            const result =
+                getModuleNamesFromEnvironmentVariable("HANDLER_FACTORIES");
+
+            expect(result).to.have.deep.members(["module-1"]);
+        });
+
+        it("Should return array with multiple modules if multiple modules in environment var", function () {
+            process.env.HANDLER_FACTORIES = "module-1,module-2,module-3";
+
+            const result =
+                getModuleNamesFromEnvironmentVariable("HANDLER_FACTORIES");
+
+            expect(result).to.have.deep.members([
+                "module-1",
+                "module-2",
+                "module-3",
+            ]);
+        });
+
+        it("Should trim whitespace and filter out empty entries", function () {
+            process.env.HANDLER_FACTORIES = "  module-1, ,module-3 ,module-2";
+
+            const result =
+                getModuleNamesFromEnvironmentVariable("HANDLER_FACTORIES");
+
+            expect(result).to.have.deep.members([
+                "module-1",
+                "module-2",
+                "module-3",
+            ]);
         });
     });
 
