@@ -50,14 +50,12 @@ If you want to run these tests by yourself, you can do the following:
 LambdaCG consists of three components:
 
 - lambdacg-resolver
-- lambdacg-updater
+- [lambdacg-updater](lambdacg-updater/)
 - lambdacg-contract
 
 The following describes an example of how they could cooperate with 3 services.
 
-![LambdaCG architecture](./diagrams/lambdacg-architecture.png)
-
- The pink thing on the left is an AWS AppSync instance in this case, but it could be anything that needs to delegate requests to specialized services.
+![LambdaCG overview](./diagrams/lambdacg-overview.png)
 
 There are 3 services, maintained by 3 teams: teams/services Blue, Purple and Red. Each of the services has the need to process (parts of) requests that arrive at the AppSync graphQL API. 
 
