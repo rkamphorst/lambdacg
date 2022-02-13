@@ -7,17 +7,28 @@ import { ResolverPackage } from "./resolver-package";
 import { S3TarballRepository } from "./s3-tarball-repository";
 import { Updater } from "./updater";
 
-const resolverPackageCodeAsset = "lambdacg-resolver.tgz";
-const targetLambdaName = "lambdacg-resolver";
+const resolverPackageCodeAsset = "resolver-package.tgz";
 
-const handlerFactoryS3Folder = "";
-const targetLambdaCodeUploadS3Folder = "";
+const targetLambdaName = process.env.TARGET_LAMBDA;
+if (!targetLambdaName) {
+    throw new Error("TARGET_LAMBDA not set or empty");
+}
+
+const s3HandlerRepositoryUrl = process.env.S3_HANDLER_REPOSITORY;
+if (!s3HandlerRepositoryUrl) {
+    throw new Error("S3_HANDLER_REPOSITORY not set or empty");
+}
+
+const s3CodeFolderUrl = process.env.S3_CODE_FOLDER;
+if (!s3CodeFolderUrl) {
+    throw new Error("S3_CODE_FOLDER not set or empty");
+}
 
 const s3Client = new S3();
 const lambdaClient = new Lambda();
 
 const createTarballRepository = () =>
-    S3TarballRepository.fromUrl(handlerFactoryS3Folder, s3Client);
+    S3TarballRepository.fromUrl(s3HandlerRepositoryUrl, s3Client);
 
 const createResolverPackage = () =>
     new ResolverPackage(
@@ -29,7 +40,7 @@ const createUpdateTarget = () =>
     new LambdaUpdateTarget(
         {
             lambdaName: targetLambdaName,
-            s3FolderUrl: targetLambdaCodeUploadS3Folder,
+            s3FolderUrl: s3CodeFolderUrl,
         },
         s3Client,
         lambdaClient

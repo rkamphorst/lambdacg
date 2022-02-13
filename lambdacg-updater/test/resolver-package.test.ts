@@ -56,6 +56,8 @@ const unzipZipStreamAsync = async (stream: Readable, unpackPath: string) => {
             (e as { code: unknown }).code === "ERR_STREAM_PREMATURE_CLOSE"
         ) {
             /* this is a nasty error that is thrown by the unzip stream, nothing to worry about... */
+            stream.unpipe(unzipStream);
+            stream.resume();
             return;
         }
         throw e;
@@ -65,6 +67,8 @@ const unzipZipStreamAsync = async (stream: Readable, unpackPath: string) => {
 describe("ResolverPackage", function () {
     const getMyPackageStream = () =>
         createReadStream(path.join(dataDir, "my-package.tgz"));
+    const getMyPackageNoMainStream = () =>
+        createReadStream(path.join(dataDir, "my-package-no-main.tgz"));
     const getModuleStream = (tgzFile: string) =>
         createReadStream(path.join(dataDir, tgzFile));
 
@@ -122,13 +126,14 @@ describe("ResolverPackage", function () {
                     npmInstallAsync
                 );
 
-                const zipStream = await sut.createCodeZipAsync();
-                await unzipZipStreamAsync(zipStream, codeUnpackPath());
+                const { packageInfo, stream, handlerFactories } =
+                    await sut.createCodeZipAsync();
+                await unzipZipStreamAsync(stream, codeUnpackPath());
 
                 await expectFileToExistAsync("index.js", codeUnpackPath());
                 await expectFileToExistAsync("package.json", codeUnpackPath());
 
-                const packageInfo = JSON.parse(
+                const packageJson = JSON.parse(
                     (
                         await fs.readFile(
                             path.join(codeUnpackPath(), "package.json")
@@ -136,7 +141,37 @@ describe("ResolverPackage", function () {
                     ).toString("utf-8")
                 ) as { [key: string]: unknown };
 
-                expect(packageInfo["name"]).to.be.equal("my-package");
+                expect(packageJson["name"]).to.be.equal("my-package");
+                expect(packageInfo.main).to.be.equal("index.js");
+                expect(packageInfo.name).to.be.equal("my-package");
+                expect(handlerFactories).to.have.deep.members([]);
+            });
+
+            it("Should create a correct zip file if package has no main entry", async function () {
+                const sut = new ResolverPackage(
+                    getMyPackageNoMainStream,
+                    npmInstallAsync
+                );
+
+                const { packageInfo, stream, handlerFactories } =
+                    await sut.createCodeZipAsync();
+                await unzipZipStreamAsync(stream, codeUnpackPath());
+
+                await expectFileToExistAsync("index.js", codeUnpackPath());
+                await expectFileToExistAsync("package.json", codeUnpackPath());
+
+                const packageJson = JSON.parse(
+                    (
+                        await fs.readFile(
+                            path.join(codeUnpackPath(), "package.json")
+                        )
+                    ).toString("utf-8")
+                ) as { [key: string]: unknown };
+
+                expect(packageJson["name"]).to.be.equal("my-package-no-main");
+                expect(packageInfo.main).to.be.equal("index");
+                expect(packageInfo.name).to.be.equal("my-package-no-main");
+                expect(handlerFactories).to.have.deep.members([]);
             });
 
             it("Should create a correct zip file if multiple modules are added", async function () {
@@ -161,21 +196,15 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                const zipStream = await sut.createCodeZipAsync();
+                const {
+                    packageInfo,
+                    stream: zipStream,
+                    handlerFactories,
+                } = await sut.createCodeZipAsync();
                 await unzipZipStreamAsync(zipStream, codeUnpackPath());
 
                 await expectFileToExistAsync("index.js", codeUnpackPath());
                 await expectFileToExistAsync("package.json", codeUnpackPath());
-
-                const packageInfo = JSON.parse(
-                    (
-                        await fs.readFile(
-                            path.join(codeUnpackPath(), "package.json")
-                        )
-                    ).toString("utf-8")
-                ) as { [key: string]: unknown };
-
-                expect(packageInfo["name"]).to.be.equal("my-package");
 
                 await expectDirectoryToExistAsync(
                     "node_modules/my-module",
@@ -189,6 +218,14 @@ describe("ResolverPackage", function () {
                     "node_modules/his-module",
                     codeUnpackPath()
                 );
+
+                expect(packageInfo.main).to.be.equal("index.js");
+                expect(packageInfo.name).to.be.equal("my-package");
+                expect(handlerFactories).to.have.deep.members([
+                    "my-module",
+                    "her-module",
+                    "his-module",
+                ]);
             });
 
             it("Should create a callable package if one module is added", async function () {
@@ -203,13 +240,15 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                const zipStream = await sut.createCodeZipAsync();
+                const { stream: zipStream, handlerFactories } =
+                    await sut.createCodeZipAsync();
                 await unzipZipStreamAsync(zipStream, codeUnpackPath());
 
+                process.env.HANDLER_FACTORIES = handlerFactories.join(",");
                 const imported = (await import(
                     path.join(codeUnpackPath(), "index.js")
-                )) as { default: (message: string) => string[] };
-                const importedFunction = imported.default;
+                )) as { handler: (message: string) => string[] };
+                const importedFunction = imported.handler;
                 const result = importedFunction("hello test one module");
 
                 expect(result).to.have.members([
@@ -239,13 +278,15 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                const zipStream = await sut.createCodeZipAsync();
+                const { stream: zipStream, handlerFactories } =
+                    await sut.createCodeZipAsync();
                 await unzipZipStreamAsync(zipStream, codeUnpackPath());
 
+                process.env.HANDLER_FACTORIES = handlerFactories.join(",");
                 const imported = (await import(
                     path.join(codeUnpackPath(), "index.js")
-                )) as { default: (message: string) => string[] };
-                const importedFunction = imported.default;
+                )) as { handler: (message: string) => string[] };
+                const importedFunction = imported.handler;
                 const result = importedFunction("hello test three modules");
 
                 expect(result).to.have.members([
@@ -263,11 +304,7 @@ describe("ResolverPackage", function () {
                     }
                 );
 
-                const zipStream = await sut.createCodeZipAsync();
-                const promise = streamFinishedAsync(zipStream);
-                zipStream.resume();
-
-                await expectToThrowAsync(() => promise);
+                expectToThrowAsync(() => sut.createCodeZipAsync());
             });
 
             it("Should throw an error if npm install throws a string", async function () {
@@ -278,16 +315,12 @@ describe("ResolverPackage", function () {
                     }
                 );
 
-                const zipStream = await sut.createCodeZipAsync();
-                const promise = streamFinishedAsync(zipStream);
-                zipStream.resume();
-
-                await expectToThrowAsync(() => promise);
+                expectToThrowAsync(() => sut.createCodeZipAsync());
             });
         });
 
         describeMember<ResolverPackage>("cleanupAsync", function () {
-            before(function () {
+            beforeEach(function () {
                 mockFs(
                     {
                         [dataDir]: mockFs.load(dataDir),
@@ -298,11 +331,13 @@ describe("ResolverPackage", function () {
                 );
             });
 
-            after(function () {
+            afterEach(function () {
                 mockFs.restore();
             });
 
             it("Should cleanup temp files", async function () {
+                // Arrange
+
                 // not using the real npm install, because it invokes npm in a seperate shell
                 // that doesn't know about mockFs
                 const sut = new ResolverPackage(getMyPackageStream, () =>
@@ -315,21 +350,19 @@ describe("ResolverPackage", function () {
                     )
                 );
 
-                const zipStream = await sut.createCodeZipAsync();
-                await unzipZipStreamAsync(zipStream, codeUnpackPath());
+                const { stream: zipStream } = await sut.createCodeZipAsync();
 
+                zipStream.resume();
+                await streamFinishedAsync(zipStream);
+
+                // Act
                 await sut.cleanupAsync();
 
+                // Assert
                 const dirContents = await fs.readdir(os.tmpdir());
-                const relativeTmpDir = path.relative(
-                    os.tmpdir(),
-                    tmpDir as string
+                expect(dirContents, "tmp dir is empty").to.have.deep.members(
+                    []
                 );
-
-                expect(
-                    dirContents,
-                    "only the test tmp dir is still there"
-                ).to.have.deep.members([relativeTmpDir]);
             });
 
             it("Should not fail if nothing to clean up", async function () {
@@ -342,15 +375,10 @@ describe("ResolverPackage", function () {
                 await sut.cleanupAsync();
 
                 const dirContents = await fs.readdir(os.tmpdir());
-                const relativeTmpDir = path.relative(
-                    os.tmpdir(),
-                    tmpDir as string
-                );
 
-                expect(
-                    dirContents,
-                    "only the test tmp dir is still there"
-                ).to.have.deep.members([relativeTmpDir]);
+                expect(dirContents, "tmp dir is empty").to.have.deep.members(
+                    []
+                );
             });
         });
     });

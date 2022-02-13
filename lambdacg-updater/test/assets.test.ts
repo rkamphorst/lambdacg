@@ -12,7 +12,7 @@ import { describeObject } from "./lib/mocha-utils";
 describe("Assets", function () {
     describeObject({ getAssetStream }, function () {
         it("Should open a stream for existing asset", async function () {
-            const readable = getAssetStream("lambdacg-resolver.tgz");
+            const readable = getAssetStream("resolver-package.tgz");
 
             const streamsAreEqual = await streamEqualAsync(
                 readable,
@@ -21,7 +21,7 @@ describe("Assets", function () {
                         __dirname,
                         "..",
                         "assets",
-                        "lambdacg-resolver.tgz"
+                        "resolver-package.tgz"
                     )
                 )
             );

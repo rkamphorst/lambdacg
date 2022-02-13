@@ -24,6 +24,19 @@ const getModuleNamesFromJsonFileAsync = async (filePath: string) => {
     return listOfStrings;
 };
 
+const getModuleNamesFromEnvironmentVariable = (variable_name: string) => {
+    if (!(variable_name in process.env)) {
+        throw new Error(`Environment variable ${variable_name} not set`);
+    }
+
+    const result =
+        process.env[variable_name]
+            ?.split(",")
+            .map((x) => x.trim())
+            .filter((x) => x.length > 0) ?? [];
+    return result;
+};
+
 const importModuleAsHandlerFactoryAsyncOrThrow = async (
     moduleName: string
 ): Promise<HandlerFactory> => {
@@ -114,6 +127,7 @@ const provideHandlerFactoriesAsync: ProvideHandlerFactoriesAsyncFunction =
     };
 
 export {
+    getModuleNamesFromEnvironmentVariable,
     getModuleNamesFromJsonFileAsync,
     provideHandlerFactoriesAsync,
     setHandlerFactoryListSource,

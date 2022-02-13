@@ -16,16 +16,28 @@ interface RepositoryTarballInterface {
     getDownloadStream(): Readable;
 }
 
+type ResolverPackageInfo = {
+    name: string;
+    main: string;
+    version: string;
+};
+
+type ResolverCodeZip = {
+    packageInfo: ResolverPackageInfo;
+    handlerFactories: string[];
+    stream: Readable;
+};
+
 interface ResolverPackageInterface {
     addHandlerTarball(handlerTarball: RepositoryTarballInterface): void;
 
-    createCodeZipAsync(): Promise<Readable>;
+    createCodeZipAsync(): Promise<ResolverCodeZip>;
 
     cleanupAsync(): Promise<void>;
 }
 
 interface UpdateTargetInterface {
-    updateCodeAsync(zipStream: Readable): Promise<void>;
+    updateCodeAsync(codeZip: ResolverCodeZip): Promise<void>;
 }
 interface UpdaterInterface {
     updateToLatestHandlersAsync(): Promise<void>;
@@ -33,6 +45,8 @@ interface UpdaterInterface {
 
 export {
     RepositoryTarballInterface,
+    ResolverCodeZip,
+    ResolverPackageInfo,
     ResolverPackageInterface,
     TarballRepositoryInterface,
     UpdaterInterface,

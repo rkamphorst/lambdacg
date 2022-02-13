@@ -3,7 +3,6 @@
   "description": "",
   "version": "1.0.0",
   "main": "dist/index",
-  "types": "dist/index",
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts"
@@ -23,6 +22,7 @@
   },
   "homepage": "https://github.com/rkamphorst/lambdagcg",
   "devDependencies": {
+    "@tsconfig/recommended": "^1.0.1",
     "typescript": "^4.5.2"
   }
 }

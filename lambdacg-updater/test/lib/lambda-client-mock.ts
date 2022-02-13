@@ -27,6 +27,8 @@ class LambdaClientMock {
 
         /* eslint-disable @typescript-eslint/no-explicit-any */
         this.#stub.updateFunctionCode = sinon.stub() as any;
+        this.#stub.getFunctionConfiguration = sinon.stub() as any;
+        this.#stub.updateFunctionConfiguration = sinon.stub() as any;
         /* eslint-enable @typescript-eslint/no-explicit-any */
     }
 
@@ -51,6 +53,51 @@ class LambdaClientMock {
             )
             .returns({
                 promise: () => Promise.resolve({}),
+            } as Request<Lambda.FunctionConfiguration, AWSError>);
+    }
+
+    setupUpdateFunctionConfiguration(
+        lambdaNameMatch: StringMatch | undefined,
+        handlerFactoriesMatch: StringMatch | undefined,
+        handlerMatch: StringMatch | undefined
+    ) {
+        return this.#stub.updateFunctionConfiguration
+            .withArgs(
+                sinon.match(
+                    (arg: Lambda.UpdateFunctionConfigurationRequest) => {
+                        return (
+                            isMatch(lambdaNameMatch, arg.FunctionName) &&
+                            isMatch(
+                                handlerFactoriesMatch,
+                                (arg.Environment?.Variables ?? {})[
+                                    "HANDLER_FACTORIES"
+                                ]
+                            ) &&
+                            isMatch(handlerMatch, arg.Handler)
+                        );
+                    }
+                )
+            )
+            .returns({
+                promise: () => Promise.resolve({}),
+            } as Request<Lambda.FunctionConfiguration, AWSError>);
+    }
+
+    setupGetFunctionConfiguration(lambdaNameMatch: StringMatch | undefined) {
+        return this.#stub.getFunctionConfiguration
+            .withArgs(
+                sinon.match((arg: Lambda.GetFunctionRequest) => {
+                    return isMatch(lambdaNameMatch, arg.FunctionName);
+                })
+            )
+            .returns({
+                promise: () =>
+                    Promise.resolve({
+                        Handler: "handler",
+                        FunctionName: "functionName",
+                        LastUpdateStatus: "Successful",
+                        State: "Active",
+                    }),
             } as Request<Lambda.FunctionConfiguration, AWSError>);
     }
 }

@@ -5,8 +5,12 @@
   "workspaces": [
     "../lambdacg-contract"
   ],
+  "files": [
+    "dist/**/*"
+  ],
   "private": true,
   "scripts": {
+    "build": "tsc --build && copyfiles -u 1 -e \"./src/**/*.ts\" \"./src/**/*\" ./dist && npm pack",
     "test": "mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.test.ts",
     "test-coverage": "nyc mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.test.ts",
     "single-test": "mocha -r 'ts-node/register' -r tsconfig-paths/register "
@@ -22,6 +26,7 @@
     "@types/node": "^16.11.19",
     "@types/sinon": "^10.0.6",
     "chai": "^4.3.4",
+    "copyfiles": "^2.4.1",
     "mocha": "^9.1.3",
     "mock-fs": "^5.1.2",
     "nyc": "^15.1.0",
@@ -31,6 +36,8 @@
     "typescript": "^4.5.2"
   },
   "dependencies": {
-    "lodash": "^4.17.21"
-  }
+    "lodash": "^4.17.21",
+    "lambdacg-contract": "^1.0.0"
+  },
+  "bundledDependencies": true
 }

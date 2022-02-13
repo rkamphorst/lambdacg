@@ -9,6 +9,9 @@ import { streamFinishedAsync } from "../src/stream-utils";
 import fsu from "./fs-utils";
 
 type NpmPackageInfo = {
+    name: string;
+    version: string;
+    main: string | undefined;
     [key: string]: unknown;
 };
 

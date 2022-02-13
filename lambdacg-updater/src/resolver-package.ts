@@ -3,18 +3,30 @@ import { rmSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { finished, PassThrough, Writable } from "node:stream";
+import { finished, PassThrough } from "node:stream";
 import { Readable } from "stream";
 
 import {
+    NpmPackageInfo,
+    readNpmPackageInfoAsync,
     storeTemporaryNpmTarballAsync,
     TemporaryNpmTarball,
 } from "./npm-utils";
 import { unpackNpmPackageContentsInTarball } from "./unpack";
 import {
     RepositoryTarballInterface,
+    ResolverCodeZip,
+    ResolverPackageInfo,
     ResolverPackageInterface,
 } from "./updater-contract";
+
+const toResolverPackageInfo = (npmPackageInfo: NpmPackageInfo) => {
+    return {
+        main: npmPackageInfo.main ?? "index",
+        name: npmPackageInfo.name,
+        version: npmPackageInfo.version,
+    } as ResolverPackageInfo;
+};
 
 class ResolverPackage implements ResolverPackageInterface {
     #directoryPromise: Promise<string> | undefined;
@@ -69,27 +81,22 @@ class ResolverPackage implements ResolverPackageInterface {
         return await storeTemporaryNpmTarballAsync(tarballStream, tmpdir);
     }
 
-    async createCodeZipAsync(): Promise<Readable> {
-        const result = new PassThrough();
+    async createCodeZipAsync(): Promise<ResolverCodeZip> {
+        const writeStream = new PassThrough();
 
-        // we could have just kicked this off and returned
-        // the stream without awaiting.
-        // however, that could cause a timeout on any writable
-        // on the other end; therefore, we first await the
-        // packaging and then return the stream.
-        await this.#packageAndZipToStreamAsync(result);
+        // create a package directory and await the "add module" promises;
+        // we can do this in parallel
+        const assetStream = this.#getPackageAssetStream();
 
-        return result;
-    }
+        const unpackStream = new PassThrough();
+        const infoStream = new PassThrough();
+        assetStream.pipe(unpackStream);
+        assetStream.pipe(infoStream);
 
-    async #packageAndZipToStreamAsync(writeStream: Writable) {
-        try {
-            // create a package directory and await the "add module" promises;
-            // we can do this in parallel
-            const [packageDirectory, tarballNamesAndFiles] = await Promise.all([
-                unpackNpmPackageContentsInTarball(
-                    this.#getPackageAssetStream()
-                ),
+        const [packageDirectory, packageInfo, tarballNamesAndFiles] =
+            await Promise.all([
+                unpackNpmPackageContentsInTarball(unpackStream),
+                readNpmPackageInfoAsync(infoStream),
                 Promise.all(
                     this.#addModulePromises.map(async (p) => ({
                         tarballName: p.tarballName,
@@ -98,45 +105,36 @@ class ResolverPackage implements ResolverPackageInterface {
                 ),
             ]);
 
-            // install the fetched modules, and write the handlerFactories.json file.
-            // again, this can be done in parallel
-            await Promise.all([
-                this.#npmInstallAsync(
-                    packageDirectory,
-                    tarballNamesAndFiles.map(
-                        ({ tarballInfo }) => tarballInfo.location
-                    )
-                ),
-                fs.writeFile(
-                    path.join(packageDirectory, "handlerFactories.json"),
-                    JSON.stringify(
-                        tarballNamesAndFiles.map(
-                            (i) => i.tarballInfo.info["name"]
-                        )
-                    )
-                ),
-            ]);
+        // install the fetched modules
 
-            // archive and pipe to the write stream
-            const archive = archiver("zip");
-            archive.pipe(writeStream);
+        await this.#npmInstallAsync(
+            packageDirectory,
+            tarballNamesAndFiles.map(({ tarballInfo }) => tarballInfo.location)
+        );
 
-            // when zip is completed, remove package dir.
-            // do this synchronously for now because nobody is waiting anyway.
-            // don't know what happens if we do it async and don't await it...
-            finished(archive, () => {
-                rmSync(packageDirectory, { force: true, recursive: true });
-            });
+        // archive and pipe to the write stream
+        const archive = archiver("zip");
+        archive.pipe(writeStream);
 
-            // add package directory
-            archive.directory(packageDirectory, false);
+        // when zip is completed, remove package dir.
+        // do this synchronously for now because nobody is waiting anyway.
+        // don't know what happens if we do it async and don't await it...
+        finished(archive, () => {
+            rmSync(packageDirectory, { force: true, recursive: true });
+        });
 
-            archive.finalize();
-        } catch (err) {
-            writeStream.destroy(
-                err instanceof Error ? err : new Error(`${err}`)
-            );
-        }
+        // add package directory
+        archive.directory(packageDirectory, false);
+
+        archive.finalize();
+
+        return {
+            packageInfo: toResolverPackageInfo(packageInfo),
+            stream: writeStream,
+            handlerFactories: tarballNamesAndFiles.map(
+                (i) => i.tarballInfo.info["name"]
+            ),
+        } as ResolverCodeZip;
     }
 
     async cleanupAsync(): Promise<void> {
@@ -147,24 +145,21 @@ class ResolverPackage implements ResolverPackageInterface {
         const addModulePromises = [...this.#addModulePromises];
         this.#addModulePromises.length = 0;
 
-        await Promise.all([
-            (async () => {
-                if (directoryPromise) {
-                    try {
-                        directory = await directoryPromise;
-                    } catch {
-                        /* skip */
-                    }
-                }
-            })(),
-            ...addModulePromises.map(async ({ promise }) => {
-                try {
-                    await promise;
-                } catch {
-                    /* skip */
-                }
-            }),
-        ]);
+        // await creation of tmp directory
+        try {
+            directory = await directoryPromise;
+        } catch {
+            /* skip */
+        }
+
+        // await addition of all modules
+        for (const mp of addModulePromises) {
+            try {
+                await mp;
+            } catch {
+                /* skip */
+            }
+        }
 
         if (directory) {
             await fs.rm(directory, { force: true, recursive: true });

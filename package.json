@@ -11,6 +11,8 @@
     "test-coverage": "npm-run-all test-coverage:*",
     "test-coverage:resolver": "cd lambdacg-resolver && npm run test-coverage",
     "test-coverage:updater": "cd lambdacg-updater && npm run test-coverage",
+    "component-test": "npm-run-all component-test:*",
+    "component-test:updater": "cd lambdacg-updater && npm run component-test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
