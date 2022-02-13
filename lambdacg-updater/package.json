@@ -7,7 +7,8 @@
   "scripts": {
     "test": "mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.test.ts",
     "test-coverage": "nyc mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.test.ts",
-    "single-test": "mocha -r 'ts-node/register' -r tsconfig-paths/register "
+    "single-test": "mocha -r 'ts-node/register' -r tsconfig-paths/register ",
+    "component-test": "mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.component-test.ts"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",

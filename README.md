@@ -15,23 +15,23 @@ Go to the repository root directory.
 
 Before anything else:
 
-    npm install
-
-To build all the code (still at the root):
-
-    npm build
+    npm ci
 
 To run all the unit tests (again, at the root of the repo):
 
     npm test
 
+to run all the component tests (also see next section):
+
+    npm run component-test
+
 This repository has a so-called *monorepo* setup, which means each of the three projects can also be independently built, tested and run.
 
 ### Testing AWS functionality
 
-There are a few AWS components are in the [lambdacg-updater](./lambdacg-updater) project. 
+The component tests are executed in the cloud, on AWS. 
 
-In order run the (unit/integration) test for AWS components, you need an AWS account. If you do not have an aws account configured, these tests will be skipped.
+In order run the component tests, you need an AWS account. If you do not have an aws account configured, these tests will be skipped.
 
 If you want to run these tests by yourself, you can do the following:
 
@@ -74,7 +74,7 @@ There are 3 services, maintained by 3 teams: teams/services Blue, Purple and Red
 
 Status of this PoC is as follows:
 
-* **lambdacg-contract**: done.
-* **lambdacg-resolver**: Code complete and unit tested
-* **lambdacg-updater**: Code complete and unit tested
-* **infrastructure**: Cloudformation templates to deploy the whole thing, not started yet.
+* **lambdacg-contract**: Done.
+* **lambdacg-resolver**: Code complete, full unit test coverage.
+* **lambdacg-updater**: Code complete, full unit test coverage, component test in place.
+* **infra**: Cloudformation templates to deploy the whole thing, not started yet.
