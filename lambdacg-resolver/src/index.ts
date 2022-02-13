@@ -1,5 +1,3 @@
-import { AppSyncResolverEvent } from "aws-lambda";
-
 import { compose } from "./composer";
 import { executeAsync } from "./executor";
 import { Gateway } from "./gateway";
@@ -20,16 +18,8 @@ const gateway = new Gateway(
     compose
 );
 
-/**
- * The following is a naïve implementation of a handler for appsync resolver events,
- * only for illustrational purposes.
- * Need som hands-on testing to find out if this will work.
- */
-
-function handleEventAsync(
-    event: AppSyncResolverEvent<GatewayRequest, Record<string, unknown>>
-): Promise<GatewayResponse> {
-    return gateway.handleRequestAsync(event.arguments);
+function handler(event: GatewayRequest): Promise<GatewayResponse> {
+    return gateway.handleRequestAsync(event);
 }
 
-export { handleEventAsync };
+export { handler };

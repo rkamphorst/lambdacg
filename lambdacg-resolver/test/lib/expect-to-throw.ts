@@ -1,13 +1,13 @@
 import { assert } from "chai";
 
 async function expectToThrowAsync(
-    fn: () => unknown,
+    fn: () => Promise<unknown>,
     condition?: (e: unknown) => boolean,
     conditionExplanation?: string
 ) {
+    let hasThrown = false;
     try {
         await Promise.resolve(fn());
-        assert.fail("No error was thrown");
     } catch (e) {
         if (condition && !condition(e)) {
             assert.fail(
@@ -15,7 +15,33 @@ async function expectToThrowAsync(
                     (conditionExplanation ? `: ${conditionExplanation}` : "")
             );
         }
+        hasThrown = true;
+    }
+    if (!hasThrown) {
+        assert.fail("No error was thrown");
     }
 }
 
-export { expectToThrowAsync };
+function expectToThrow(
+    fn: () => unknown,
+    condition?: (e: unknown) => boolean,
+    conditionExplanation?: string
+) {
+    let hasThrown = false;
+    try {
+        fn();
+    } catch (e) {
+        if (condition && !condition(e)) {
+            assert.fail(
+                "Something was thrown, but did not satisfy condition" +
+                    (conditionExplanation ? `: ${conditionExplanation}` : "")
+            );
+        }
+        hasThrown = true;
+    }
+    if (!hasThrown) {
+        assert.fail("No error was thrown");
+    }
+}
+
+export { expectToThrow, expectToThrowAsync };
