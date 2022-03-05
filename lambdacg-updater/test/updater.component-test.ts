@@ -46,8 +46,8 @@ describe("Updater (component test)", function () {
         process.env["S3_CODE_FOLDER"] = `s3://${codeUploadBucket}/`;
         process.env["TARGET_LAMBDA"] = lambdaName;
 
-        const { handleAsync } = await import("../src/index");
-        invokeUpdaterAsync = handleAsync;
+        const { handler } = await import("../src/index");
+        invokeUpdaterAsync = handler;
     });
 
     beforeEach(async function () {
