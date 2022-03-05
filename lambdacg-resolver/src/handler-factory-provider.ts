@@ -29,11 +29,10 @@ const getModuleNamesFromEnvironmentVariable = (variable_name: string) => {
         throw new Error(`Environment variable ${variable_name} not set`);
     }
 
-    const result =
-        (process.env[variable_name] as string)
-            .split(",")
-            .map((x) => x.trim())
-            .filter((x) => x.length > 0);
+    const result = (process.env[variable_name] as string)
+        .split(",")
+        .map((x) => x.trim())
+        .filter((x) => x.length > 0);
     return result;
 };
 
