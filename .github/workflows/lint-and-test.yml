@@ -14,6 +14,10 @@ jobs:
       matrix:
         node-version: [16.x, 14.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        # The code in this repo must run on AWS lambda. At the time of writing, node 16 is LTS, 
+        # but lambda doesn't support it (yet).
+        # See https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html.
+        # We therefore want to support 14 *and* 16.
 
     steps:
     - uses: actions/checkout@v2
