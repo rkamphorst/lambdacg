@@ -30,10 +30,10 @@ const getModuleNamesFromEnvironmentVariable = (variable_name: string) => {
     }
 
     const result =
-        process.env[variable_name]
-            ?.split(",")
+        (process.env[variable_name] as string)
+            .split(",")
             .map((x) => x.trim())
-            .filter((x) => x.length > 0) ?? [];
+            .filter((x) => x.length > 0);
     return result;
 };
 
