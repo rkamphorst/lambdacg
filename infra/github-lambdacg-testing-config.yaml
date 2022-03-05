@@ -25,6 +25,7 @@ Resources:
                   - lambda:UpdateFunctionCode
                   - lambda:InvokeFunction
                   - lambda:GetFunctionConfiguration
+                  - lambda:UpdateFunctionConfiguration
                 Resource: 
                   - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:lambdacg-* 
               - Sid: PermissionToPassARole
