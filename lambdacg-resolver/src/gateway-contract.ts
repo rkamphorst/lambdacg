@@ -27,7 +27,7 @@ type GatewayRequest = {
 
 type GatewaySuccessResponse = {
     success: true;
-    response: { [key: string]: unknown };
+    response?: { [key: string]: unknown };
 };
 
 type GatewayErrorResponse = {

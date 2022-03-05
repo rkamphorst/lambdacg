@@ -52,8 +52,8 @@ const updater = new Updater(
     createUpdateTarget
 );
 
-const handleAsync = async () => {
+const handler = async () => {
     await updater.updateToLatestHandlersAsync();
 };
 
-export { handleAsync };
+export { handler };
