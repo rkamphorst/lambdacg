@@ -1,0 +1,43 @@
+{
+    "name": "lambdacg-resolver",
+    "description": "",
+    "version": "1.0.0",
+    "workspaces": [
+        "../lambdacg-contract"
+    ],
+    "files": [
+        "dist/**/*"
+    ],
+    "private": true,
+    "scripts": {
+        "build": "tsc --build && copyfiles -u 1 -e \"./src/**/*.ts\" \"./src/**/*\" ./dist && npm pack",
+        "test": "mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.test.ts",
+        "test-coverage": "nyc mocha -r 'ts-node/register' -r 'tsconfig-paths/register' test/**/*.test.ts",
+        "single-test": "mocha -r 'ts-node/register' -r tsconfig-paths/register "
+    },
+    "devDependencies": {
+        "@istanbuljs/nyc-config-typescript": "^1.0.2",
+        "@tsconfig/recommended": "^1.0.1",
+        "@types/aws-lambda": "^8.10.86",
+        "@types/chai": "^4.2.22",
+        "@types/lodash": "^4.14.177",
+        "@types/mocha": "^9.0.0",
+        "@types/mock-fs": "^4.13.1",
+        "@types/node": "^16.11.19",
+        "@types/sinon": "^10.0.6",
+        "chai": "^4.3.4",
+        "copyfiles": "^2.4.1",
+        "mocha": "^9.1.3",
+        "mock-fs": "^5.1.2",
+        "nyc": "^15.1.0",
+        "sinon": "^12.0.1",
+        "ts-node": "^10.4.0",
+        "tsconfig-paths": "^3.12.0",
+        "typescript": "^4.5.2"
+    },
+    "dependencies": {
+        "lambdacg-contract": "workspace:^",
+        "lodash": "^4.17.21"
+    },
+    "bundledDependencies": true
+}

@@ -1,28 +1,34 @@
 {
-  "name": "lambdacg",
-  "scripts": {
-    "prepare": "npm-run-all prepare:*",
-    "prepare:contract": "cd lambdacg-contract && npm ci",
-    "prepare:resolver": "cd lambdacg-resolver && npm ci",
-    "prepare:updater": "cd lambdacg-updater && npm ci",
-    "test": "npm-run-all test:*",
-    "test:resolver": "cd lambdacg-resolver && npm test",
-    "test:updater": "cd lambdacg-updater && npm test",
-    "test-coverage": "npm-run-all test-coverage:*",
-    "test-coverage:resolver": "cd lambdacg-resolver && npm run test-coverage",
-    "test-coverage:updater": "cd lambdacg-updater && npm run test-coverage",
-    "component-test": "npm-run-all component-test:*",
-    "component-test:updater": "cd lambdacg-updater && npm run component-test",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
-  },
-  "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^5.5.0",
-    "@typescript-eslint/parser": "^5.5.0",
-    "eslint": "^8.4.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-prettier": "^4.0.0",
-    "eslint-plugin-simple-import-sort": "^7.0.0",
-    "npm-run-all": "^4.1.5"
-  }
+    "name": "lambdacg",
+    "workspaces": [
+        "packages/*"
+    ],
+    "scripts": {
+        "prepare": "npm-run-all prepare:*",
+        "prepare:contract": "cd packages/lambdacg-contract && npm ci",
+        "prepare:resolver": "cd packages/lambdacg-resolver && npm ci",
+        "prepare:updater": "cd packages/lambdacg-updater && npm ci",
+        "test": "npm-run-all test:*",
+        "test:resolver": "cd packages/lambdacg-resolver && npm test",
+        "test:updater": "cd packages/lambdacg-updater && npm test",
+        "test-coverage": "npm-run-all test-coverage:*",
+        "test-coverage:resolver": "cd packages/lambdacg-resolver && npm run test-coverage",
+        "test-coverage:updater": "cd packages/lambdacg-updater && npm run test-coverage",
+        "component-test": "npm-run-all component-test:*",
+        "component-test:updater": "cd packages/lambdacg-updater && npm run component-test",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^5.5.0",
+        "@typescript-eslint/parser": "^5.5.0",
+        "eslint": "^8.4.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "eslint-plugin-simple-import-sort": "^7.0.0",
+        "npm-run-all": "^4.1.5"
+    },
+    "dependencies": {
+        "prettier": "^2.6.2"
+    }
 }
