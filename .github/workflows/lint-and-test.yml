@@ -25,12 +25,10 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - name: Upgrade NPM
-      run: npm install -g npm
-    - run: npm ci
-    - run: npm run lint
-    - run: npm test
+        cache: 'yarn'
+    - run: yarn install --immutable
+    - run: yarn run lint
+    - run: yarn test
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@master
       with:

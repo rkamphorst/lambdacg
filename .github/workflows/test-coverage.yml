@@ -17,8 +17,6 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: 16.x
-        cache: 'npm'
-    - name: Upgrade NPM
-      run: npm install -g npm
-    - run: npm ci
-    - run: npm run test-coverage
+        cache: 'yarn'
+    - run: yarn install --immutable
+    - run: yarn run test-coverage
