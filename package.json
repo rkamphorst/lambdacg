@@ -16,6 +16,7 @@
         "test-coverage:updater": "cd packages/lambdacg-updater && npm run test-coverage",
         "component-test": "npm-run-all component-test:*",
         "component-test:updater": "cd packages/lambdacg-updater && npm run component-test",
+        "component-test:resolver": "cd packages/lambdacg-resolver && npm run component-test",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix"
     },
