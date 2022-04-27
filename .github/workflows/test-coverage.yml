@@ -18,5 +18,6 @@ jobs:
       with:
         node-version: 16.x
         cache: 'yarn'
+    - run: yarn set version berry
     - run: yarn install --immutable
     - run: yarn run test-coverage
